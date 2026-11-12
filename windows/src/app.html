@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>日格</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="shell">
+  <div class="titlebar">
+    <div class="brand"><span class="mark"></span>日格</div>
+    <div class="tb-path" id="tb-path">/ 今天</div>
+    <div class="tb-search" id="open-search">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#98A19D" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      搜索条目、备注、标签
+      <span class="k">Ctrl K</span>
+    </div>
+    <div class="win-btns">
+      <button id="win-min" title="最小化"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5h6" stroke="currentColor" stroke-width="1.2"/></svg></button>
+      <button id="win-max" title="最大化"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="2" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.1"/></svg></button>
+      <button class="close" id="win-close" title="关闭到托盘"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5" stroke="currentColor" stroke-width="1.2"/></svg></button>
+    </div>
+  </div>
+
+  <div class="appbody">
+    <aside class="sidebar">
+      <nav class="nav">
+        <a class="on" data-view="today"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>今天<span class="count" id="nav-today-count"></span></a>
+        <a data-view="month"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9h17M8 3v4M16 3v4"/></svg>日历</a>
+        <a data-view="review"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>复盘</a>
+        <a id="nav-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>搜索</a>
+      </nav>
+      <div class="side-label">清单</div>
+      <div class="lists" id="list-counts"></div>
+      <div class="side-bottom">
+        <a data-view="settings"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="#F4F6F2"/><circle cx="15" cy="12" r="2" fill="#F4F6F2"/><circle cx="8" cy="17" r="2" fill="#F4F6F2"/></svg>设置</a>
+        <div class="hint" id="backup-hint">正在读取数据…</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- 今天 -->
+      <section class="view on" id="view-today">
+        <div class="page-head">
+          <h1 id="today-title">今天<small id="today-sub"></small></h1>
+          <div class="right">
+            <button class="btn ghost" id="btn-prev-day">前一天</button>
+            <button class="btn primary" id="btn-new">＋ 新建</button>
+          </div>
+        </div>
+        <div class="statline" id="statline"></div>
+        <div class="today-grid">
+          <div class="timeline" id="timeline">
+            <div class="tl-hours" id="tl-hours"></div>
+            <div class="tl-body" id="tl-body"></div>
+          </div>
+          <div class="side-panel">
+            <div class="panel-h"><b>今日待办</b><span id="task-count">0 件</span></div>
+            <ul class="tasklist" id="task-list"></ul>
+            <div class="panel-h" style="margin-top:14px"><b>已完成</b><span id="done-count">0 件</span></div>
+            <ul class="tasklist" id="done-list"></ul>
+            <div class="reflect">
+              <div class="lb"><span>今日一句</span><span id="log-hint">写点什么</span></div>
+              <textarea id="daily-summary" placeholder="今天做成了什么？明天最重要的一件事？" maxlength="300"></textarea>
+              <div class="moods" id="moods">
+                <button class="mood" data-mood="1">🙂</button>
+                <button class="mood" data-mood="2">😐</button>
+                <button class="mood" data-mood="3">😴</button>
+                <button class="mood" data-mood="4">🔥</button>
+                <button class="mood" data-mood="5">🌧</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 日历 -->
+      <section class="view" id="view-month">
+        <div class="page-head">
+          <h1>日历<small>拖拽暂未开放，双击格子可新建</small></h1>
+          <div class="right"><button class="btn primary" id="btn-new-month">＋ 新建</button></div>
+        </div>
+        <div class="month-wrap">
+          <div class="month-top">
+            <button class="nav-arrow" id="month-prev">‹</button>
+            <button class="nav-arrow" id="month-next">›</button>
+            <div class="m" id="month-title">2026 年 11 月<small id="month-weeks"></small></div>
+            <div class="seg"><span class="on">月</span><span data-soon="周视图">周</span><span data-soon="日视图">日</span></div>
+          </div>
+          <div class="month-grid" id="month-grid"></div>
+        </div>
+      </section>
+
+      <!-- 复盘 -->
+      <section class="view" id="view-review">
+        <div class="page-head">
+          <h1 id="review-title">本周<small id="review-sub"></small></h1>
+          <div class="right"><button class="btn" id="btn-export">导出 JSON</button></div>
+        </div>
+        <div class="review-wrap">
+          <div class="kpis">
+            <div class="kpi"><div class="k">完成率</div><div class="v" id="kpi-rate">0<small>%</small></div><div class="d" id="kpi-rate-d">本周</div></div>
+            <div class="kpi"><div class="k">完成 / 计划</div><div class="v" id="kpi-done">0<small>/ 0</small></div><div class="d" id="kpi-done-d"></div></div>
+            <div class="kpi"><div class="k">顺延</div><div class="v" id="kpi-post">0<small>次</small></div><div class="d" id="kpi-post-d"></div></div>
+            <div class="kpi"><div class="k">连续记录</div><div class="v" id="kpi-streak">0<small>天</small></div><div class="d">含完成任务或每日一句</div></div>
+          </div>
+          <div class="rev-cols">
+            <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+              <div class="card">
+                <h3>时间分布 <span>按清单 · 预计耗时</span></h3>
+                <div class="bars" id="bars"></div>
+                <h3 style="margin-top:16px">完成热力 <span>近 26 周</span></h3>
+                <div class="heat" id="heat"></div>
+                <div class="heat-foot"><span>5 月</span><span>8 月</span><span>11 月</span></div>
+                <div style="margin-top:20px">
+                  <div style="display:flex;justify-content:space-between;font-size:10px;color:#8C9591;margin-bottom:2px"><span>本周每天完成</span><span id="spark-note"></span></div>
+                  <svg class="spark" id="spark" viewBox="0 0 560 66" preserveAspectRatio="none"></svg>
+                  <div class="spark-labels"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <h3>下周三件最重要的事 <span>取自本周未完成</span></h3>
+                <ul class="mit" id="mit"></ul>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+              <div class="card" style="flex:1">
+                <h3>本周一句话 <span id="quote-date"></span></h3>
+                <p class="quote" id="week-quote">这周还没有写。周日打开「今天」，在右栏写一句就行。</p>
+                <div class="review-note" id="quote-meta"></div>
+                <div class="kw" id="kw"></div>
+              </div>
+              <div class="card">
+                <h3>顺延最多 <span>需要处理</span></h3>
+                <ul class="tasklist" id="postponed-list"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 设置 -->
+      <section class="view" id="view-settings">
+        <div class="page-head"><h1>设置<small>改动即时生效</small></h1></div>
+        <div class="settings-wrap">
+          <div class="set-nav">
+            <a class="on">数据</a><a>行为</a><a>关于</a>
+          </div>
+          <div class="set-body">
+            <div class="field">
+              <div class="lab">云同步<small>电脑和手机都连同一台服务器，数据加密后上传</small></div>
+              <div class="ctl">
+                <input class="set-input" id="cloud-url" placeholder="http://服务器IP:8787">
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <input class="set-input" id="cloud-space" placeholder="空间 ID">
+                  <input class="set-input" id="cloud-device" placeholder="设备 ID">
+                </div>
+                <input class="set-input" id="cloud-token" placeholder="设备令牌" style="margin-top:8px">
+                <input class="set-input" id="cloud-pass" type="password" placeholder="同步口令（电脑和手机必须一致）" style="margin-top:8px">
+                <div class="row" style="margin-top:10px;flex-wrap:wrap">
+                  <button class="btn primary" id="btn-cloud-save">保存并同步</button>
+                  <button class="btn" id="btn-cloud-code">生成配对码</button>
+                  <span id="cloud-code" style="font-size:18px;letter-spacing:5px;color:#14505C;font-weight:700"></span>
+                </div>
+                <div class="set-hint" id="cloud-status">未配置</div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="lab">主题<small>透明：组件透出壁纸，主窗口保持浅色</small></div>
+              <div class="ctl">
+                <div class="seg theme-seg" id="theme-seg">
+                  <span data-theme-mode="light">浅色</span>
+                  <span data-theme-mode="dark">深色</span>
+                  <span data-theme-mode="transparent">透明</span>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="lab">数据位置<small>SQLite 单文件，直接备份它就行</small></div>
+              <div class="ctl">
+                <div class="path" id="data-path">…</div>
+                <div class="row" style="margin-top:8px">
+                  <button class="btn" id="btn-open-dir">打开目录</button>
+                  <button class="btn" id="btn-backup">立即备份</button>
+                  <span id="data-size" style="font-size:11px;color:#98A19D"></span>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="lab">导出<small>JSON 含全部条目与每日记录</small></div>
+              <div class="ctl"><button class="btn" id="btn-export2">导出 JSON…</button></div>
+            </div>
+            <div class="field">
+              <div class="lab">自动备份<small>每天首次启动自动一份，保留 30 天</small></div>
+              <div class="ctl"><span class="path" id="backup-path">…</span></div>
+            </div>
+            <div class="field">
+              <div class="lab">开机自启</div>
+              <div class="ctl"><span class="switch" id="sw-autostart"></span> <span style="margin-left:8px" id="autostart-label">关闭</span></div>
+            </div>
+            <div class="field">
+              <div class="lab">桌面组件<small>Ctrl+Alt+D 显示 / 隐藏</small></div>
+              <div class="ctl row"><button class="btn" id="btn-toggle-widget">隐藏组件</button><span style="font-size:11px;color:#98A19D">速记 Ctrl+Alt+Space</span></div>
+            </div>
+            <div class="field">
+              <div class="lab">清空数据<small>删除全部条目与每日记录，不可恢复</small></div>
+              <div class="ctl"><button class="btn danger" id="btn-clear">清空所有数据…</button></div>
+            </div>
+            <div class="field">
+              <div class="lab">版本</div>
+              <div class="ctl" id="about">日格 0.1.0 · Electron</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- 编辑条目 -->
+<div class="overlay" id="editor-overlay">
+  <div class="modal">
+    <div class="modal-h"><span id="editor-title">编辑条目</span><button id="editor-x">×</button></div>
+    <div class="modal-b">
+      <div class="form-row"><label>标题</label><input id="ed-title" maxlength="120"></div>
+      <div class="form-row"><label>日期</label><input id="ed-date" type="date"></div>
+      <div class="form-row"><label>时间</label>
+        <div class="two"><input id="ed-start" type="time"><input id="ed-end" type="time"></div>
+      </div>
+      <div class="form-row"><label>清单</label>
+        <select id="ed-list"><option value="work">工作</option><option value="life">生活</option><option value="study">学习</option></select>
+      </div>
+      <div class="form-row"><label>优先级</label>
+        <select id="ed-priority"><option value="0">无</option><option value="1">中</option><option value="2">高</option></select>
+      </div>
+      <div class="form-row"><label>备注</label><textarea id="ed-notes" maxlength="2000"></textarea></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn danger" id="ed-delete" style="margin-right:auto">删除</button>
+      <button class="btn" id="ed-cancel">取消</button>
+      <button class="btn primary" id="ed-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 搜索 -->
+<div class="overlay" id="search-overlay">
+  <div class="modal search-modal">
+    <input class="search-input" id="search-input" placeholder="搜索条目… 回车打开第一条">
+    <div class="search-list" id="search-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

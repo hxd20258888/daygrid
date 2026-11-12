@@ -1,0 +1,18 @@
+{
+  "name": "daygrid",
+  "version": "0.1.0",
+  "description": "日格 · 个人日历清单工具",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/run-e2e.js"
+  },
+  "devDependencies": {
+    "electron": "45.3.1"
+  },
+  "dependencies": {
+    "playwright-core": "^1.65.0",
+    "sql.js": "^1.13.0"
+  }
+}

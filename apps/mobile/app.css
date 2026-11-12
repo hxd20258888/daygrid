@@ -1,0 +1,49 @@
+/* 移动端补充样式（基础样式在 index.html 内联） */
+
+/* 未连接提示条 */
+.offline-bar{
+  position:absolute;left:12px;right:12px;bottom:88px;z-index:26;
+  background:#FBF1E7;border:1px solid #F0DCC7;color:#8A532C;
+  font-size:11px;padding:8px 12px;border-radius:10px;
+  display:none;align-items:center;justify-content:space-between;gap:8px;
+  box-shadow:0 6px 18px rgba(30,50,45,.08);
+}
+.offline-bar.on{display:flex}
+.offline-bar a{color:#BF6F3E;text-decoration:none;font-weight:600;white-space:nowrap}
+
+/* 设置输入 */
+.set-input{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  font-size:12.5px;background:#fff;outline:0;color:var(--ink);
+}
+.set-input:focus{border-color:#A9C9C2}
+.set-btn{
+  height:38px;padding:0 14px;border-radius:10px;background:var(--teal);color:#fff;
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+}
+.set-btn:disabled{opacity:.6}
+.set-btn.ghost{background:var(--teal-soft);color:var(--teal2)}
+.set-btn.danger{background:#FBEFEE;color:#B4473F}
+.set-hint{font-size:10px;color:#A2ABA7;margin-top:8px;line-height:1.6}
+
+/* 空状态（行内） */
+.empty-mini{padding:14px 10px;font-size:11.5px;color:#A8B1AD}
+
+/* 轻提示 */
+.toast{
+  position:absolute;left:50%;bottom:96px;transform:translate(-50%,8px);
+  background:#22302C;color:#fff;font-size:11.5px;padding:8px 14px;border-radius:9px;
+  opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:80%;text-align:center;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+
+/* ---------- 真机全屏：去掉原型外框与假状态栏 ---------- */
+body{display:block;background:var(--paper);padding:0;min-height:100vh}
+.device{width:100vw;height:100vh;background:transparent;border-radius:0;padding:0;box-shadow:none}
+.device:before{display:none}
+.screen{width:100vw;height:100vh;height:100dvh;border-radius:0;padding-top:max(env(safe-area-inset-top),6px)}
+.statusbar{display:none}
+.homebar{display:none}
+.offline-bar{bottom:86px}
+body.unpaired .fab{bottom:136px}

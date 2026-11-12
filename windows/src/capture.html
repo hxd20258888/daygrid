@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>速记</title>
+<link rel="stylesheet" href="capture.css">
+</head>
+<body>
+<div class="capture">
+  <div class="cap-row">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1F6F78" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+    <input id="cap-input" class="cap-input" type="text" spellcheck="false" autocomplete="off"
+           placeholder="记点什么… 试试「明天下午3点 和张总过方案 #工作」">
+  </div>
+  <div class="cap-chips" id="cap-chips"></div>
+  <div class="cap-foot">
+    <div class="cap-keys">
+      <span><kbd>↵</kbd>保存</span><span><kbd>Esc</kbd>取消</span><span><kbd>Ctrl</kbd>+<kbd>↵</kbd>详情</span>
+    </div>
+    <div class="cap-dest">添加到：<b id="cap-dest">今天</b></div>
+  </div>
+</div>
+<script src="capture.js"></script>
+</body>
+</html>

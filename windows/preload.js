@@ -1,0 +1,51 @@
+'use strict';
+
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+  range: (from, to) => ipcRenderer.invoke('entries:range', { from, to }),
+  counts: (from, to) => ipcRenderer.invoke('entries:counts', { from, to }),
+  create: (input) => ipcRenderer.invoke('entry:create', input),
+  update: (id, patch) => ipcRenderer.invoke('entry:update', { id, patch }),
+  toggle: (id) => ipcRenderer.invoke('entry:toggle', id),
+  remove: (id) => ipcRenderer.invoke('entry:remove', id),
+  log: {
+    get: (date) => ipcRenderer.invoke('log:get', date),
+    set: (date, patch) => ipcRenderer.invoke('log:set', { date, ...patch }),
+    range: (from, to) => ipcRenderer.invoke('log:range', { from, to }),
+  },
+  stats: (date) => ipcRenderer.invoke('stats:week', date),
+  heat: (days) => ipcRenderer.invoke('stats:heat', days),
+  setting: {
+    get: (key) => ipcRenderer.invoke('setting:get', key),
+    set: (key, value) => ipcRenderer.invoke('setting:set', { key, value }),
+  },
+  data: {
+    info: () => ipcRenderer.invoke('data:info'),
+    exportJson: () => ipcRenderer.invoke('data:export'),
+    backup: () => ipcRenderer.invoke('data:backup'),
+    clear: () => ipcRenderer.invoke('data:clear'),
+    openDir: () => ipcRenderer.invoke('data:openDir'),
+  },
+  openMain: () => ipcRenderer.invoke('win:openMain'),
+  capture: (date) => ipcRenderer.invoke('win:capture', date),
+  closeCapture: () => ipcRenderer.invoke('win:closeCapture'),
+  minimize: () => ipcRenderer.invoke('win:minimize'),
+  maximize: () => ipcRenderer.invoke('win:maximize'),
+  closeApp: () => ipcRenderer.invoke('win:close'),
+  hideWidget: () => ipcRenderer.invoke('win:hideWidget'),
+  toggleWidget: () => ipcRenderer.invoke('win:toggleWidget'),
+  widgetVisible: () => ipcRenderer.invoke('win:widgetVisible'),
+  onWidgetVisibility: (cb) => ipcRenderer.on('widget:visibility', (_e, v) => cb(v)),
+  setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  onTheme: (cb) => ipcRenderer.on('theme:changed', (_e, mode) => cb(mode)),
+  onChanged: (cb) => ipcRenderer.on('data:changed', () => cb()),
+  onReminder: (cb) => ipcRenderer.on('reminder', (_e, payload) => cb(payload)),
+  checkReminders: () => ipcRenderer.invoke('reminders:check'),
+  syncStatus: () => ipcRenderer.invoke('sync:status'),
+  syncConfig: (cfg) => ipcRenderer.invoke('sync:config', cfg),
+  syncRun: () => ipcRenderer.invoke('sync:run'),
+  syncCode: () => ipcRenderer.invoke('sync:code'),
+  versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
+  onFocus: (cb) => ipcRenderer.on('capture:focus', (_e, payload) => cb(payload)),
+});

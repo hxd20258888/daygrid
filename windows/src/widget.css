@@ -1,0 +1,137 @@
+:root{
+  --paper:#FBFAF7;
+  --card:#FFFFFF;
+  --ink:#232B29;
+  --ink2:#5A6561;
+  --ink3:#8C9591;
+  --line:#E3E7E4;
+  --line2:#EEF1EE;
+  --teal:#14505C;
+  --teal2:#1F6F78;
+  --teal-soft:#E8F1EF;
+  --amber:#BF6F3E;
+  --amber-soft:#F8EEE6;
+  --violet:#6B5B95;
+  --violet-soft:#EFEBF6;
+  --green:#3F7A5E;
+  --shadow:0 18px 50px rgba(28,48,43,.16), 0 2px 6px rgba(28,48,43,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  color:var(--ink);
+  background:transparent;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid #9FC6C0;outline-offset:2px}
+::selection{background:#CFE3DE}
+.drag{-webkit-app-region:drag}
+.no-drag{-webkit-app-region:no-drag}
+input,textarea{font:inherit;color:inherit;user-select:text}
+
+/* ---------- 桌面组件 ---------- */
+.widget{
+  width:344px;margin:20px auto 0;
+  background:rgba(252,252,249,.94);
+  border:1px solid rgba(255,255,255,.9);
+  border-radius:16px;
+  box-shadow:0 18px 44px rgba(28,48,43,.18), 0 2px 6px rgba(28,48,43,.08);
+  padding:16px 16px 12px;
+}
+.w-head{display:flex;align-items:flex-start;justify-content:space-between;padding:2px 2px 10px}
+.w-title{font-size:15.5px;font-weight:700;letter-spacing:.2px;color:var(--teal)}
+.w-title em{font-style:normal;font-size:10.5px;font-weight:500;color:var(--ink3);margin-left:7px;letter-spacing:0}
+.w-actions{display:flex;gap:2px;margin-top:-3px}
+.w-actions button{font-size:11px;color:var(--ink2);padding:4px 7px;border-radius:6px}
+.w-actions button:hover{background:var(--teal-soft);color:var(--teal)}
+.w-week{display:grid;grid-template-columns:repeat(7,1fr);padding:0 2px 4px;text-align:center;font-size:10.5px;color:var(--ink3)}
+.w-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0}
+.w-cell{position:relative;height:36px;display:flex;flex-direction:column;align-items:center;padding-top:4px;border-radius:8px;cursor:pointer}
+.w-cell:hover{background:#F0F4F2}
+.w-cell .num{font-size:12.5px;color:#3B4643;line-height:18px;width:22px;height:22px;display:grid;place-items:center;border-radius:50%}
+.w-cell.out .num{color:#C3CAC7}
+.w-cell.weekend .num{color:#8A7C74}
+.w-cell.sel{background:var(--teal-soft)}
+.w-cell.sel .num{font-weight:700;color:var(--teal)}
+.w-cell.today .num{background:var(--teal);color:#fff;font-weight:700}
+.w-cell.today.sel{background:transparent}
+.w-cell.today .w-dots{display:none}
+.w-dots{display:flex;gap:2.5px;height:4px;margin-top:1px;align-items:center}
+.w-dots i{width:3.5px;height:3.5px;border-radius:50%;display:block}
+.w-sep{height:1px;background:var(--line);margin:10px 2px 0}
+.w-today-head{display:flex;align-items:baseline;justify-content:space-between;padding:11px 2px 6px}
+.w-today-head b{font-size:12px;font-weight:700;color:var(--ink)}
+.w-today-head span{font-size:10.5px;color:var(--ink3)}
+.w-today-head .ratio{color:var(--teal2);font-weight:700;font-size:11px}
+.w-list{list-style:none;display:flex;flex-direction:column;gap:1px;min-height:96px}
+.w-item{display:flex;align-items:center;gap:8px;padding:7px 4px;border-radius:7px;cursor:pointer}
+.w-item:hover{background:#F2F6F4}
+.w-check{width:14px;height:14px;border-radius:50%;border:1.4px solid #C6CFCB;flex:0 0 auto;display:grid;place-items:center;cursor:pointer}
+.w-check.on{background:var(--teal2);border-color:var(--teal2)}
+.w-check.on:after{content:"";width:6px;height:3px;border-left:1.4px solid #fff;border-bottom:1.4px solid #fff;transform:rotate(-45deg) translate(.5px,-1px)}
+.w-item .t{font-size:10.5px;color:var(--ink3);width:34px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.w-item .ti{font-size:12.5px;color:#2C3733;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-item.done .ti{color:#A6AFAB;text-decoration:line-through}
+.w-item .badge{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--teal-soft);color:var(--teal2);flex:0 0 auto}
+.w-empty{padding:14px 4px;font-size:11.5px;color:#A2ABA7}
+
+/* 到期提醒 */
+.reminder-bar{
+  display:flex;align-items:center;gap:8px;margin:0 2px 10px;padding:8px 10px;
+  background:#FBF1E7;border:1px solid #F0DCC7;border-left:3px solid var(--amber);
+  border-radius:8px;
+}
+.reminder-bar[hidden]{display:none}
+.reminder-bar .rb-ic{font-size:13px;line-height:1}
+.reminder-bar .rb-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.reminder-bar .rb-tx b{font-size:11.5px;color:#6E4426;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reminder-bar .rb-tx small{font-size:10px;color:#A0714C}
+.reminder-bar button{font-size:10.5px;color:#8A532C;padding:3px 7px;border-radius:5px}
+.reminder-bar button:hover{background:#F4E3D2}
+.w-add{margin-top:8px;width:100%;padding:7px 0;border:1px dashed #D2DBD7;border-radius:9px;color:var(--ink2);font-size:12px;background:rgba(255,255,255,.4)}
+.w-add:hover{border-color:var(--teal2);color:var(--teal2);background:#F4F9F7}
+
+/* ==================== 深色主题 ==================== */
+body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#AAB4AF;--ink3:#7E8884;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
+body[data-theme="dark"] .widget{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 18px 44px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
+body[data-theme="dark"] .w-title{color:#9FC6C0}
+body[data-theme="dark"] .w-title em{color:#7E8884}
+body[data-theme="dark"] .w-actions button{color:#AAB4AF}
+body[data-theme="dark"] .w-actions button:hover{background:#22332F;color:#9FC6C0}
+body[data-theme="dark"] .w-week{color:#7E8884}
+body[data-theme="dark"] .w-cell:hover{background:#242C28}
+body[data-theme="dark"] .w-cell .num{color:#D5DDD9}
+body[data-theme="dark"] .w-cell.out .num{color:#5E6864}
+body[data-theme="dark"] .w-cell.weekend .num{color:#B9A79C}
+body[data-theme="dark"] .w-cell.sel{background:#22332F}
+body[data-theme="dark"] .w-cell.today .num{background:#2C6B65;color:#fff}
+body[data-theme="dark"] .w-sep{background:#333C37}
+body[data-theme="dark"] .w-today-head b{color:#E8ECE9}
+body[data-theme="dark"] .w-today-head span{color:#7E8884}
+body[data-theme="dark"] .w-item:hover{background:#242C28}
+body[data-theme="dark"] .w-item .t{color:#7E8884}
+body[data-theme="dark"] .w-item .ti{color:#DDE5E1}
+body[data-theme="dark"] .w-item.done .ti{color:#7C8682}
+body[data-theme="dark"] .w-check{border-color:#4A5550}
+body[data-theme="dark"] .w-add{border-color:#3A443F;color:#AAB4AF;background:rgba(255,255,255,.02)}
+body[data-theme="dark"] .w-add:hover{border-color:#4E9A93;color:#9FC6C0;background:#22332F}
+body[data-theme="dark"] .w-empty{color:#6F7A75}
+body[data-theme="dark"] .reminder-bar{background:#33261E;border-color:#4A3728;border-left-color:#D08A5A}
+body[data-theme="dark"] .reminder-bar .rb-tx b{color:#E8C4A4}
+body[data-theme="dark"] .reminder-bar .rb-tx small{color:#B98F6C}
+body[data-theme="dark"] .reminder-bar button{color:#D8A374}
+body[data-theme="dark"] .reminder-bar button:hover{background:#3F2E22}
+
+/* ==================== 透明主题（组件透出壁纸） ==================== */
+body[data-transparent="1"] .widget{
+  background:rgba(252,252,249,.62);
+  border-color:rgba(255,255,255,.55);
+  box-shadow:0 20px 54px rgba(28,48,43,.22), 0 2px 6px rgba(28,48,43,.1);
+}
+body[data-transparent="1"] .w-cell:hover{background:rgba(255,255,255,.45)}
+body[data-transparent="1"] .w-item:hover{background:rgba(255,255,255,.45)}
+body[data-transparent="1"] .w-add{background:rgba(255,255,255,.35)}

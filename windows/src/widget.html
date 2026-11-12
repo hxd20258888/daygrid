@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>日格</title>
+<link rel="stylesheet" href="widget.css">
+</head>
+<body>
+<div class="widget" id="widget">
+  <header class="w-head drag">
+    <div class="w-title"><span id="w-month">2026 年 11 月</span><em id="w-week"></em></div>
+    <div class="w-actions no-drag">
+      <button id="w-today" title="回到今天">今天</button>
+      <button id="w-menu" title="打开完整窗口">···</button>
+    </div>
+  </header>
+  <div class="reminder-bar" id="reminder-bar" hidden>
+    <span class="rb-ic">⏰</span>
+    <div class="rb-tx"><b id="rb-title"></b><small id="rb-sub"></small></div>
+    <button id="rb-done">完成</button>
+    <button id="rb-close" title="关闭">×</button>
+  </div>
+  <div class="w-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+  <div class="w-grid" id="w-grid"></div>
+  <div class="w-sep"></div>
+  <div class="w-today-head">
+    <b id="w-day-label">今天</b>
+    <span><b class="ratio" id="w-ratio"></b> <span id="w-ratio-label">已完成</span></span>
+  </div>
+  <ul class="w-list" id="w-list"></ul>
+  <button class="w-add" id="w-add">+ 添加今天的事</button>
+</div>
+<script src="widget.js"></script>
+</body>
+</html>

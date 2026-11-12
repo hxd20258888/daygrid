@@ -1,0 +1,18 @@
+# 依赖与运行时（体积大，不进仓库）
+windows/node_modules/
+windows/runtime/
+windows/dist/
+windows/build/electron.zip
+
+# 运行数据
+server/data/
+windows/.smoke-data/
+*.log
+*.tmp
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 说明：apps/android/daygrid.keystore 故意保留，
+# 重打包必须用同一个签名，否则手机无法覆盖安装。
