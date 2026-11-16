@@ -29,18 +29,18 @@ body{font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,san
 .cap-dest b{color:#14505C}
 
 /* ==================== 深色主题 ==================== */
-body[data-theme="dark"]{--paper:#202723;--ink:#E8ECE9;--ink2:#AAB4AF;--ink3:#7E8884;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--line:#333C37}
+body[data-theme="dark"]{--paper:#202723;--ink:#E8ECE9;--ink2:#C6CFCA;--ink3:#9EA9A4;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--line:#333C37}
 body[data-theme="dark"] .capture{background:#202723;border-color:rgba(255,255,255,.07);box-shadow:0 30px 80px rgba(0,0,0,.55)}
 body[data-theme="dark"] .cap-input{color:#E8ECE9}
-body[data-theme="dark"] .cap-input::placeholder{color:#6F7A75}
-body[data-theme="dark"] .chip{background:#262E2A;border-color:#333C37;color:#C9D3CE}
+body[data-theme="dark"] .cap-input::placeholder{color:#8E9893}
+body[data-theme="dark"] .chip{background:#262E2A;border-color:#333C37;color:#DFE6E2}
 body[data-theme="dark"] .chip b{color:#9FC6C0}
 body[data-theme="dark"] .chip.tag{background:#22332F;border-color:#3D5A52;color:#9FC6C0}
-body[data-theme="dark"] .chip.ghost{color:#7E8884}
+body[data-theme="dark"] .chip.ghost{color:#9EA9A4}
 body[data-theme="dark"] .cap-foot{background:#1C2320;border-top-color:#2A312D}
-body[data-theme="dark"] .cap-keys{color:#7E8884}
-body[data-theme="dark"] .cap-keys kbd{background:#262E2A;border-color:#3A443F;color:#AAB4AF}
-body[data-theme="dark"] .cap-dest{color:#AAB4AF}
+body[data-theme="dark"] .cap-keys{color:#9EA9A4}
+body[data-theme="dark"] .cap-keys kbd{background:#262E2A;border-color:#3A443F;color:#C6CFCA}
+body[data-theme="dark"] .cap-dest{color:#C6CFCA}
 body[data-theme="dark"] .cap-dest b{color:#9FC6C0}
 
 /* ==================== 透明主题 ==================== */

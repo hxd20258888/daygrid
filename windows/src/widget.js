@@ -16,6 +16,20 @@ function applyTheme(mode) {
 window.api.onTheme((m) => applyTheme(m));
 
 const COLORS = { work: '#1F6F78', life: '#BF6F3E', study: '#6B5B95' };
+
+/* 深色主题下把这些列表色提亮，否则暗底上的小圆点几乎看不见 */
+function mixHex(hex, to, t) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const a = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const b = [1, 3, 5].map((i) => parseInt(to.slice(i, i + 2), 16));
+  return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const dotColor = (id) => {
+  const c = COLORS[id] || '#9AA39F';
+  return themeMode === 'dark' ? mixHex(c, '#ffffff', 0.55) : c;
+};
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
 const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -66,7 +80,7 @@ async function renderGrid() {
     const out = d.getMonth() !== cursor.getMonth();
     const wd = (d.getDay() + 6) % 7;
     const c = counts[key] || { total: 0, lists: [] };
-    const dots = c.lists.slice(0, 3).map((id) => `<i style="background:${COLORS[id] || '#9AA39F'}"></i>`).join('');
+    const dots = c.lists.slice(0, 3).map((id) => `<i style="background:${dotColor(id)}"></i>`).join('');
     const cls = ['w-cell', out ? 'out' : '', wd >= 5 ? 'weekend' : '', key === today ? 'today' : '', key === selected ? 'sel' : ''].filter(Boolean).join(' ');
     html += `<div class="${cls}" data-date="${key}"><span class="num">${d.getDate()}</span><span class="w-dots">${dots}</span></div>`;
   }
@@ -193,6 +207,8 @@ document.getElementById('rb-done').addEventListener('click', async () => {
 });
 
 window.api.onChanged(() => { refresh(); if (isMini()) renderMini(); });
+// 换主题要重画：圆点颜色是按主题算出来的内联样式
+window.api.onTheme((m) => { applyTheme(m); refresh(); if (isMini()) renderMini(); });
 
 /* ---------------- 收起成小图标 / 展开 ---------------- */
 const MINI = 'mini';
@@ -206,7 +222,7 @@ async function renderMini() {
   try {
     const c = await window.api.counts(today, today);
     const lists = ((c && c[today]) || {}).lists || [];
-    dots.innerHTML = lists.slice(0, 3).map((id) => `<i style="background:${COLORS[id] || '#9AA39F'}"></i>`).join('');
+    dots.innerHTML = lists.slice(0, 3).map((id) => `<i style="background:${dotColor(id)}"></i>`).join('');
   } catch (_) {
     dots.innerHTML = '';
   }

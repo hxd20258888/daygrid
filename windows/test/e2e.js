@@ -274,6 +274,40 @@ async function main() {
   await widget.waitForTimeout(400);
   await widget.screenshot({ path: path.join(SHOTS, '08-dark-widget.png') });
   await mainWin.screenshot({ path: path.join(SHOTS, '06-dark-settings.png') });
+
+  /* 深色下必须看得清：文字亮度够、条目不能被 flex 压成一条线 */
+  const LUM = `(c) => { const m = (c || '').match(/[\\d.]+/g) || [0, 0, 0]; const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(+m[0]) + 0.7152 * f(+m[1]) + 0.0722 * f(+m[2]); }`;
+  await mainWin.click('.nav a[data-view="month"]');
+  await mainWin.waitForSelector('#month-grid .mcell .pill');
+  await mainWin.waitForTimeout(400);
+  const darkLook = await mainWin.evaluate(`(() => {
+    const lum = ${LUM};
+    const pill = document.querySelector('#month-grid .mcell .pill');
+    const dayNum = document.querySelector('#month-grid .mcell:not(.out) .d');
+    return {
+      pillLum: +lum(getComputedStyle(pill).color).toFixed(3),
+      pillH: Math.round(pill.getBoundingClientRect().height),
+      dayLum: +lum(getComputedStyle(dayNum).color).toFixed(3),
+      headLum: +lum(getComputedStyle(document.querySelector('#month-grid .mhead')).color).toFixed(3),
+    };
+  })()`);
+  check('深色下日历条目文字够亮', darkLook.pillLum >= 0.6, JSON.stringify(darkLook));
+  check('深色下条目没被压扁', darkLook.pillH >= 13, `${darkLook.pillH}px`);
+  check('深色下日期与星期够亮', darkLook.dayLum >= 0.5 && darkLook.headLum >= 0.33, `${darkLook.dayLum} / ${darkLook.headLum}`);
+  await mainWin.screenshot({ path: path.join(SHOTS, '06b-dark-month.png') });
+
+  const widgetDark = await widget.evaluate(`(() => {
+    const lum = ${LUM};
+    const item = document.querySelector('.w-item:not(.done) .ti') || document.querySelector('.w-item .ti');
+    return {
+      itemLum: +lum(getComputedStyle(item).color).toFixed(3),
+      weekLum: +lum(getComputedStyle(document.querySelector('.w-week span')).color).toFixed(3),
+    };
+  })()`);
+  check('深色下组件文字够亮', widgetDark.itemLum >= 0.6 && widgetDark.weekLum >= 0.33, JSON.stringify(widgetDark));
+
+  await mainWin.click('.side-bottom a[data-view="settings"]');
+  await mainWin.waitForTimeout(300);
   await mainWin.click('.nav a[data-view="today"]');
   await mainWin.waitForTimeout(400);
   await mainWin.screenshot({ path: path.join(SHOTS, '07-dark-today.png') });

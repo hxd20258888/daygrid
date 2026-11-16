@@ -118,30 +118,30 @@ body.collapsed .widget{display:none}
 body.collapsed .w-mini{display:flex}
 
 /* ==================== 深色主题 ==================== */
-body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#AAB4AF;--ink3:#7E8884;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
+body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#C6CFCA;--ink3:#9EA9A4;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
 body[data-theme="dark"] .widget{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 18px 44px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
 body[data-theme="dark"] .w-title{color:#9FC6C0}
-body[data-theme="dark"] .w-title em{color:#7E8884}
-body[data-theme="dark"] .w-actions button{color:#AAB4AF}
+body[data-theme="dark"] .w-title em{color:#9EA9A4}
+body[data-theme="dark"] .w-actions button{color:#C6CFCA}
 body[data-theme="dark"] .w-actions button:hover{background:#22332F;color:#9FC6C0}
-body[data-theme="dark"] .w-week{color:#7E8884}
+body[data-theme="dark"] .w-week{color:#9EA9A4}
 body[data-theme="dark"] .w-cell:hover{background:#242C28}
-body[data-theme="dark"] .w-cell .num{color:#D5DDD9}
-body[data-theme="dark"] .w-cell.out .num{color:#5E6864}
-body[data-theme="dark"] .w-cell.weekend .num{color:#B9A79C}
+body[data-theme="dark"] .w-cell .num{color:#E6ECE9}
+body[data-theme="dark"] .w-cell.out .num{color:#7F8984}
+body[data-theme="dark"] .w-cell.weekend .num{color:#CFBCB0}
 body[data-theme="dark"] .w-cell.sel{background:#22332F}
 body[data-theme="dark"] .w-cell.today .num{background:#2C6B65;color:#fff}
 body[data-theme="dark"] .w-sep{background:#333C37}
 body[data-theme="dark"] .w-today-head b{color:#E8ECE9}
-body[data-theme="dark"] .w-today-head span{color:#7E8884}
+body[data-theme="dark"] .w-today-head span{color:#9EA9A4}
 body[data-theme="dark"] .w-item:hover{background:#242C28}
-body[data-theme="dark"] .w-item .t{color:#7E8884}
-body[data-theme="dark"] .w-item .ti{color:#DDE5E1}
-body[data-theme="dark"] .w-item.done .ti{color:#7C8682}
+body[data-theme="dark"] .w-item .t{color:#9EA9A4}
+body[data-theme="dark"] .w-item .ti{color:#EAF0ED}
+body[data-theme="dark"] .w-item.done .ti{color:#98A29D}
 body[data-theme="dark"] .w-check{border-color:#4A5550}
-body[data-theme="dark"] .w-add{border-color:#3A443F;color:#AAB4AF;background:rgba(255,255,255,.02)}
+body[data-theme="dark"] .w-add{border-color:#3A443F;color:#C6CFCA;background:rgba(255,255,255,.02)}
 body[data-theme="dark"] .w-add:hover{border-color:#4E9A93;color:#9FC6C0;background:#22332F}
-body[data-theme="dark"] .w-empty{color:#6F7A75}
+body[data-theme="dark"] .w-empty{color:#8E9893}
 body[data-theme="dark"] .reminder-bar{background:#33261E;border-color:#4A3728;border-left-color:#D08A5A}
 body[data-theme="dark"] .reminder-bar .rb-tx b{color:#E8C4A4}
 body[data-theme="dark"] .reminder-bar .rb-tx small{color:#B98F6C}
@@ -149,8 +149,8 @@ body[data-theme="dark"] .reminder-bar button{color:#D8A374}
 body[data-theme="dark"] .reminder-bar button:hover{background:#3F2E22}
 body[data-theme="dark"] .w-mini{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 10px 26px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
 body[data-theme="dark"] .w-mini b{color:#9FC6C0}
-body[data-theme="dark"] .w-mini em{color:#7E8884}
-body[data-theme="dark"] .w-mini-open{color:#AAB4AF}
+body[data-theme="dark"] .w-mini em{color:#9EA9A4}
+body[data-theme="dark"] .w-mini-open{color:#C6CFCA}
 body[data-theme="dark"] .w-mini-open:hover{background:#22332F;color:#9FC6C0}
 
 /* ==================== 透明主题（组件透出壁纸） ==================== */

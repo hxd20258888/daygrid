@@ -23,6 +23,20 @@ let todayStr = ymd(new Date());
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (id) => document.getElementById(id);
 
+/* 列表色（数据库里存的是浅色主题下的深色）在深色主题下必须提亮，否则暗底上认不出来 */
+function mixHex(hex, to, t) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const a = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const b = [1, 3, 5].map((i) => parseInt(to.slice(i, i + 2), 16));
+  return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+function accent(hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return hex || 'var(--teal2)';
+  return document.body.dataset.theme === 'dark' ? mixHex(hex, '#ffffff', 0.55) : hex;
+}
+
 const state = {
   view: 'today',
   date: todayStr,
@@ -136,7 +150,7 @@ function taskHtml(e) {
     <i class="c ${e.status === 'done' ? 'done' : ''}" data-toggle="${e.id}"></i>
     <div class="tx">
       <div class="tt">${esc(e.title)}</div>
-      <div class="tm"><i style="background:${e.listColor}"></i>${esc(e.listName)} · ${e.start || '无时间'}</div>
+      <div class="tm"><i style="background:${accent(e.listColor)}"></i>${esc(e.listName)} · ${e.start || '无时间'}</div>
     </div>
   </li>`;
 }
@@ -190,7 +204,7 @@ async function updateSidebar(entries) {
   const colors = { work: '#1F6F78', life: '#BF6F3E', study: '#6B5B95' };
   const names = { work: '工作', life: '生活', study: '学习' };
   $('list-counts').innerHTML = Object.keys(counts).map((k) => `
-    <a data-list="${k}"><i class="dot" style="background:${colors[k]}"></i>${names[k]}<span class="count">${counts[k]}</span></a>`).join('');
+    <a data-list="${k}"><i class="dot" style="background:${accent(colors[k])}"></i>${names[k]}<span class="count">${counts[k]}</span></a>`).join('');
 }
 
 /* ---------------- 日历 ---------------- */
@@ -206,16 +220,22 @@ async function loadMonth() {
   for (const e of entries) (byDate[e.date] = byDate[e.date] || []).push(e);
 
   $('month-title').innerHTML = `${cur.getFullYear()} 年 ${cur.getMonth() + 1} 月<small>第 ${isoWeek(from)} – ${isoWeek(to)} 周</small>`;
+  // 一格能放几条：按当前行高算，放不下的折成「+N」放进日期行，
+  // 否则条目会被 flex 压成一条线（深色下几乎看不见）
+  const gridEl = $('month-grid');
+  const rowH = gridEl.clientHeight ? (gridEl.clientHeight - 26) / 6 : 56;
+  const limit = Math.max(1, Math.min(3, Math.floor((rowH - 23) / 17) + 1));
   let html = ['一', '二', '三', '四', '五', '六', '日'].map((d) => `<div class="mhead">${d}</div>`).join('');
   for (let i = 0; i < 42; i++) {
     const key = addDays(from, i);
     const d = parseYmd(key);
     const out = d.getMonth() !== cur.getMonth();
     const es = byDate[key] || [];
-    const pills = es.slice(0, 3).map((e) => `<span class="pill ${e.status === 'done' ? 'done' : ''}" style="border-left-color:${e.listColor};background:${e.listColor}1A;color:#3B4743">${esc(e.title)}</span>`).join('');
-    const more = es.length > 3 ? `<span class="more">+${es.length - 3}</span>` : '';
+    const pills = es.slice(0, limit).map((e) => `<span class="pill ${e.status === 'done' ? 'done' : ''}" style="--accent:${accent(e.listColor)}">${esc(e.title)}</span>`).join('');
+    const more = es.length > limit ? `<span class="more">+${es.length - limit}</span>` : '';
+    const monthTag = out && d.getDate() === 1 ? `<span class="dm">${d.getMonth() + 1}月</span>` : '';
     html += `<div class="mcell ${out ? 'out' : ''} ${key === todayStr ? 'today' : ''}" data-date="${key}">
-      <div class="d">${key === todayStr ? `<em>${d.getDate()}</em>` : d.getDate()}<span style="font-size:8.5px;color:#C0C8C4">${out && d.getDate() === 1 ? d.getMonth() + 1 + '月' : ''}</span></div>${pills}${more}</div>`;
+      <div class="d">${key === todayStr ? `<em>${d.getDate()}</em>` : d.getDate()}${monthTag || more}</div>${pills}</div>`;
   }
   $('month-grid').innerHTML = html;
 }
@@ -237,7 +257,7 @@ async function loadReview() {
   const max = Math.max(1, ...lists.map((l) => l.min));
   $('bars').innerHTML = lists.length ? lists.map((l) => `
     <div class="brow"><span>${esc(l.name)}</span>
-      <div class="btrack"><i style="width:${Math.round((l.min / max) * 100)}%;background:${l.color}"></i></div>
+      <div class="btrack"><i style="width:${Math.round((l.min / max) * 100)}%;background:${accent(l.color)}"></i></div>
       <span class="bval">${(l.min / 60).toFixed(1)}h</span></div>`).join('') : '<div class="empty">本周还没有条目</div>';
 
   const heat = await window.api.heat(182);
@@ -265,8 +285,8 @@ async function loadReview() {
     : '<li class="empty">本周没有顺延</li>';
 
   const open = all.filter((e) => e.status !== 'done').slice(0, 3);
-  $('mit').innerHTML = open.length ? open.map((e, i) => `<li><b>${i + 1}</b>${esc(e.title)}<span style="color:#98A19D;font-size:10px;margin-left:6px">${e.date.slice(5)}</span></li>`).join('')
-    : '<li style="color:#98A19D;font-size:12px">本周没有遗留，下周重新开始</li>';
+  $('mit').innerHTML = open.length ? open.map((e, i) => `<li><b>${i + 1}</b>${esc(e.title)}<span style="color:var(--ink3);font-size:10px;margin-left:6px">${e.date.slice(5)}</span></li>`).join('')
+    : '<li style="color:var(--ink3);font-size:12px">本周没有遗留，下周重新开始</li>';
 
   const logs = await window.api.log.range(s.from, s.to);
   const withText = logs.filter((l) => l.summary && l.summary.trim());
@@ -379,7 +399,7 @@ function renderSearch(q) {
     <div class="search-item" data-id="${e.id}">
       <span class="d">${e.date.slice(5)}</span>
       <span class="t">${esc(e.title)}</span>
-      <span style="margin-left:auto;font-size:10px;color:${e.listColor}">${esc(e.listName)}</span>
+      <span style="margin-left:auto;font-size:10px;color:${accent(e.listColor)}">${esc(e.listName)}</span>
     </div>`).join('') : '<div class="search-empty">没有找到</div>';
 }
 
@@ -422,6 +442,12 @@ function bind() {
 
   $('month-prev').addEventListener('click', () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1); loadMonth(); });
   $('month-next').addEventListener('click', () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1); loadMonth(); });
+  // 窗口大小变了，一格能放的条目数也变，重排一次
+  window.addEventListener('resize', () => {
+    if (state.view !== 'month') return;
+    clearTimeout(window.__mresize);
+    window.__mresize = setTimeout(loadMonth, 150);
+  });
   $('month-grid').addEventListener('click', (e) => {
     const cell = e.target.closest('.mcell');
     if (!cell) return;
@@ -600,7 +626,8 @@ async function refreshChrome() {
 
 /* ---------------- 启动 ---------------- */
 window.api.onChanged(() => refreshCurrent());
-window.api.onTheme((m) => applyTheme(m));
+// 换主题时重画一次：列表色/圆点是按主题算出来的内联样式
+window.api.onTheme((m) => { applyTheme(m); refreshCurrent(); });
 (async () => { applyTheme((await window.api.setting.get('theme')) || 'light'); })();
 setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
 window.addEventListener('focus', () => { checkDateRollover().catch(() => {}); });
