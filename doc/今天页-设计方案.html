@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>日格 · 「今天」页设计方案</title>
+<style>
+  :root{
+    --paper:#1B211E; --card:#232A26; --card2:#202623;
+    --ink:#E8ECE9; --ink2:#C6CFCA; --ink3:#9EA9A4; --ink4:#7C8781;
+    --line:#333C37; --line2:#2A312D; --line3:#262E2A;
+    --teal:#8FC0B9; --teal2:#4E9A93; --teal-soft:#22332F;
+    --red:#E0805C;
+    --work:#8FB7BB; --life:#D9A279; --study:#B5ADCA;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;background:#0b100f;color:var(--ink);padding:26px;display:flex;flex-wrap:wrap;gap:26px 30px;align-items:flex-start}
+  .wrap{display:flex;flex-direction:column;gap:8px}
+  .cap{font-size:13px;color:#cfe0da}
+  .cap b{color:#fff;font-size:14px;margin-right:8px}
+  .cap span{color:#8ea39c}
+  .frame{width:796px;height:532px;background:var(--paper);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.55);border:1px solid #2b342f}
+  /* 窗口骨架 */
+  .titlebar{height:44px;flex:0 0 44px;background:#202623;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 0 0 16px}
+  .brand{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--teal);letter-spacing:.4px}
+  .brand i{width:18px;height:18px;border-radius:5px;background:#2C6B65;display:block;position:relative}
+  .brand i:after{content:"";position:absolute;left:5.5px;top:5.5px;width:7px;height:7px;border-radius:1.5px;background:#CFE3DE}
+  .tb-path{font-size:11.5px;color:var(--ink3)}
+  .tb-search{margin-left:auto;width:250px;height:27px;border-radius:7px;background:#262E2A;border:1px solid var(--line);display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:#A5AFAA;gap:7px}
+  .tb-search .k{margin-left:auto;font-size:10px;border:1px solid #3A443F;border-radius:3px;padding:0 3px}
+  .winb{display:flex}
+  .winb i{width:44px;height:44px;display:grid;place-items:center;color:#C6CFCA;font-style:normal;font-size:11px}
+  .body{flex:1;display:flex;min-height:0}
+  .side{width:196px;flex:0 0 196px;background:#1E2421;border-right:1px solid var(--line);padding:12px 10px 10px;display:flex;flex-direction:column}
+  .nav{display:flex;flex-direction:column;gap:1px}
+  .nav a{display:flex;align-items:center;gap:8px;height:31px;padding:0 10px;border-radius:7px;font-size:12.5px;color:#C6CFCA}
+  .nav a.on{background:#22332F;color:#9FC6C0;font-weight:700}
+  .nav a .c{margin-left:auto;font-size:10px;color:var(--ink3)}
+  .sl{font-size:10px;color:#8E9893;letter-spacing:1px;margin:14px 10px 5px}
+  .lists a{display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:7px;font-size:12.5px;color:#C6CFCA}
+  .lists a i{width:7px;height:7px;border-radius:50%}
+  .lists a .c{margin-left:auto;font-size:10px;color:#9EA9A4}
+  .sbot{margin-top:auto;border-top:1px solid var(--line);padding-top:8px}
+  .sbot a{display:flex;align-items:center;gap:8px;height:28px;padding:0 10px;border-radius:7px;font-size:12px;color:#B7C1BC}
+  .sbot .hint{font-size:9.5px;color:#8E9893;padding:5px 10px}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:0 22px 14px;min-height:0}
+  /* 通用 */
+  .phead{display:flex;align-items:flex-end;gap:10px;padding:14px 0 10px;flex:0 0 auto}
+  .phead h1{font-size:21px;font-weight:700;letter-spacing:.4px}
+  .phead h1 small{font-size:11px;font-weight:400;color:var(--ink3);margin-left:8px}
+  .phead .r{margin-left:auto;display:flex;gap:7px}
+  .btn{height:27px;padding:0 11px;border-radius:7px;border:1px solid var(--line);background:#232A26;color:#E6ECE9;font-size:11.5px;display:inline-flex;align-items:center;gap:5px}
+  .btn.pri{background:#2C6B65;border-color:#2C6B65;color:#fff;font-weight:600}
+  .chk{width:15px;height:15px;border-radius:50%;border:1.4px solid #4A5550;flex:0 0 auto;position:relative}
+  .chk.on{background:#4E9A93;border-color:#4E9A93}
+  .chk.on:after{content:"";position:absolute;left:3.4px;top:4px;width:6px;height:3px;border-left:1.5px solid #06201d;border-bottom:1.5px solid #06201d;transform:rotate(-45deg)}
+  .bar{width:3px;border-radius:2px;flex:0 0 auto;background:var(--a,var(--teal2))}
+  .tag{font-size:9.5px;padding:1px 5px;border-radius:4px;background:var(--teal-soft);color:#8FC0B9;flex:0 0 auto;line-height:1.5}
+  .dot{width:5px;height:5px;border-radius:50%;display:inline-block;flex:0 0 auto}
+  .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .sec{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;flex:0 0 auto}
+  .sec b{font-size:11.5px;color:#DFE6E2;letter-spacing:.3px}
+  .sec span{font-size:10.5px;color:var(--ink3)}
+  .card{background:var(--card);border:1px solid var(--line2);border-radius:9px}
+  .ta{background:#232B27;border:1px solid var(--line);border-radius:8px;padding:8px 9px;font-size:11px;color:#8E9893;line-height:1.6}
+  .moods{display:flex;gap:5px;flex:0 0 auto}
+  .moods i{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:9.5px;font-style:normal;color:#A7B2AC}
+  .ring{width:46px;height:46px;border-radius:50%;background:conic-gradient(#4E9A93 0 138deg,#2A312D 138deg 360deg);position:relative;flex:0 0 auto}
+  .ring:after{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--card)}
+  .k{font-size:10px;color:var(--ink3)}
+  .v{font-size:14px;font-weight:700;color:#EAF0ED;margin-top:2px}
+
+  /* ========== 现状 ========== */
+  .cur-tl{position:relative;height:72px;flex:0 0 auto;margin-bottom:8px}
+  .cur-tl .bar2{position:absolute;top:4px;height:22px;border-radius:6px;background:#23302C;display:flex;align-items:center;gap:5px;padding:0 6px;font-size:10.5px;color:#EAF0ED;font-weight:600}
+  .cur-tl .bar2 i{width:3px;height:14px;border-radius:2px;background:var(--work);flex:0 0 auto}
+  .cur-tl .bar2.done{background:#242B27;color:#9EA9A4;font-weight:500}
+  .cur-tl .axis{position:absolute;left:0;right:0;bottom:0;height:12px;font-size:9px;color:#8E9893}
+  .cur-tl .axis i{position:absolute;font-style:normal;transform:translateX(-50%)}
+  .cur-tl .now{position:absolute;top:0;bottom:14px;width:1px;background:var(--red)}
+  .cur-row{flex:1;display:grid;grid-template-columns:1.1fr .9fr 1fr;gap:9px;min-height:0}
+  .cur-pane{background:var(--card);border:1px solid var(--line2);border-radius:9px;padding:8px 9px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .cur-t{display:flex;gap:7px;padding:6px;align-items:flex-start;border-radius:7px}
+  .cur-t .bar{height:26px}
+  .cur-t .tx{min-width:0;flex:1}
+  .cur-t .tt{font-size:12px;color:#EAF0ED}
+  .cur-t .tm{font-size:10px;color:#A7B2AC;margin-top:2px}
+  .cur-t.done .tt{color:#9EA9A4;text-decoration:line-through}
+
+  /* ========== A 议程 ========== */
+  .a-rule{position:relative;height:56px;flex:0 0 auto;margin-bottom:8px;border-bottom:1px solid var(--line3)}
+  .a-rule .hr{position:absolute;top:14px;height:6px;width:1px;background:#3A443F}
+  .a-rule .tk{position:absolute;top:0;font-size:9px;color:#8E9893;transform:translateX(-50%)}
+  .a-rule .ev{position:absolute;top:26px;height:6px;border-radius:3px;background:#4E9A93}
+  .a-rule .ev.l2{top:36px}
+  .a-rule .ev.done{background:#46524C}
+  .a-rule .now{position:absolute;top:18px;bottom:4px;width:1px;background:var(--red)}
+  .a-rule .now b{position:absolute;top:-12px;left:-20px;font-size:9px;font-weight:600;color:var(--red);background:var(--paper);padding:0 2px}
+  .a-body{flex:1;display:flex;gap:11px;min-height:0}
+  .a-list{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+  .a-row{display:flex;align-items:center;gap:8px;padding:0 8px;height:42px;border-radius:8px;flex:0 0 auto}
+  .a-row .bar{height:20px}
+  .a-row .tt{font-size:12.5px;color:#EAF0ED;flex:1;min-width:0}
+  .a-row .w{font-size:10.5px;color:var(--ink3);flex:0 0 auto}
+  .a-row.hi{background:#25312C}
+  .a-row.done{opacity:.66;height:34px}
+  .a-row.done .tt{text-decoration:line-through;color:#B7C1BC}
+  .a-div{height:1px;background:var(--line2);margin:8px 4px 10px;flex:0 0 auto}
+  .a-rail{width:184px;flex:0 0 184px;display:flex;flex-direction:column;gap:9px}
+  .a-ring{display:flex;align-items:center;gap:10px;padding:10px 11px}
+  .a-note{display:flex;flex-direction:column;padding:10px 11px}
+  .a-week{flex:1;padding:10px 11px;display:flex;flex-direction:column;justify-content:center}
+  .a-week .bars{display:flex;gap:4px;align-items:flex-end;height:46px;margin-top:6px}
+  .a-week .bars i{flex:1;border-radius:2px;background:#2F4A43;min-height:4px}
+  .a-week .bars i.on{background:#4E9A93}
+  .a-week .xs{display:flex;justify-content:space-between;font-size:9px;color:#8E9893;margin-top:4px}
+
+  /* ========== B 卡片 ========== */
+  .b-kpis{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:9px;flex:0 0 auto;margin-bottom:10px}
+  .b-kpi{padding:9px 11px}
+  .b-kpi .v{display:flex;align-items:baseline;gap:6px;font-size:15px}
+  .b-kpi .v em{font-style:normal;font-size:11px;color:var(--ink2);font-weight:400}
+  .b-kpi .track{height:4px;border-radius:2px;background:#2C3430;margin-top:7px;overflow:hidden}
+  .b-kpi .track i{display:block;height:100%;background:#4E9A93;border-radius:2px}
+  .b-ghead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px;flex:0 0 auto}
+  .b-ghead .sec{width:100%}
+  .b-grid{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:min-content;gap:8px;min-height:0;overflow:hidden}
+  .b-card{padding:8px 10px;display:flex;gap:8px;align-items:flex-start;min-height:50px}
+  .b-card .bar{height:30px}
+  .b-card .tx{min-width:0;flex:1}
+  .b-card .tt{font-size:12.5px;color:#EAF0ED;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .b-card .tm{font-size:10px;color:var(--ink3);margin-top:3px;display:flex;align-items:center;gap:5px}
+  .b-card.done{background:#252C28}
+  .b-card.done .tt{color:#9EA9A4;text-decoration:line-through}
+  .b-ghost{display:flex;align-items:center;justify-content:center;font-size:11.5px;color:#8E9893;border:1px dashed #3A443F;background:transparent}
+  .b-foot{flex:1;display:flex;gap:9px;margin-top:10px;min-height:0}
+  .b-note{flex:1;display:flex;flex-direction:column;gap:7px;padding:10px 11px;min-height:0}
+  .b-note .ph{flex:1;font-size:11.5px;color:#8E9893}
+  .b-done{width:210px;flex:0 0 210px;padding:10px 11px;display:flex;flex-direction:column;gap:5px}
+  .b-done .l{font-size:10.5px;color:#9EA9A4;display:flex;gap:6px;align-items:center}
+  .b-done .l b{color:#DFE6E2;font-size:11px;font-weight:600}
+
+  /* ========== C 时间轴 ========== */
+  .c-tl{flex:0 0 auto;position:relative;height:104px;margin-bottom:10px;border-radius:10px}
+  .c-tl .lane{position:absolute;left:0;right:0;height:26px}
+  .c-tl .blk{position:absolute;height:26px;border-radius:6px;background:#27403A;display:flex;align-items:center;gap:5px;padding:0 7px;font-size:11px;font-weight:600;color:#EAF0ED;overflow:hidden;white-space:nowrap}
+  .c-tl .blk .bt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .c-tl .blk .tm{font-size:9px;color:#9FB3AC;font-weight:400;flex:0 0 auto}
+  .c-tl .blk .tm{font-size:9px;color:#9FB3AC;font-weight:400;flex:0 0 auto}
+  .c-tl .blk.done{background:#252C28;color:#9EA9A4;font-weight:500;text-decoration:line-through}
+  .c-tl .blk.done .tm{color:#8E9893}
+  .c-tl .axis{position:absolute;left:0;right:0;bottom:2px;height:11px;font-size:9px;color:#8E9893}
+  .c-tl .axis i{position:absolute;font-style:normal;transform:translateX(-50%)}
+  .c-tl .now{position:absolute;top:8px;bottom:16px;width:1px;background:var(--red)}
+  .c-tl .now b{position:absolute;top:-9px;left:3px;font-size:9px;font-weight:600;color:var(--red)}
+  .c-body{flex:1;display:flex;gap:11px;min-height:0}
+  .c-list{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+  .c-row{display:flex;align-items:center;gap:8px;height:44px;padding:0 8px;border-bottom:1px solid var(--line3);flex:0 0 auto}
+  .c-row .bar{height:20px}
+  .c-row .tt{font-size:12.5px;color:#EAF0ED;flex:1;min-width:0}
+  .c-row .tm{font-size:10.5px;color:var(--ink3);flex:0 0 auto}
+  .c-fold{display:flex;align-items:center;gap:6px;font-size:11px;color:#9EA9A4;padding:9px 8px 0}
+  .c-rail{width:196px;flex:0 0 196px;display:flex;flex-direction:column;gap:9px}
+
+  /* ========== D 时段 ========== */
+  .d-cols{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;min-height:0}
+  .d-col{padding:9px 10px;display:flex;flex-direction:column;gap:7px;min-height:0;overflow:hidden}
+  .d-col .h{display:flex;align-items:baseline;justify-content:space-between;font-size:11px;color:#DFE6E2;font-weight:600;flex:0 0 auto}
+  .d-col .h em{font-style:normal;font-size:9.5px;color:var(--ink3);font-weight:400}
+  .d-it{background:#28332E;border-radius:6px;padding:6px 8px;display:flex;gap:7px;flex:0 0 auto}
+  .d-it .bar{height:auto}
+  .d-it .tx{min-width:0}
+  .d-it .tm{font-size:9.5px;color:#9FB3AC}
+  .d-it .tt{font-size:11.5px;color:#EAF0ED;line-height:1.35;margin-top:1px}
+  .d-it.done{background:#242B27}
+  .d-it.done .tt{color:#9EA9A4;text-decoration:line-through}
+  .d-it.done .tm:before{content:"✓ ";color:#4E9A93}
+  .d-ghost{margin-top:auto;border:1px dashed #35403A;border-radius:6px;height:26px;display:grid;place-items:center;font-size:10.5px;color:#8E9893;flex:0 0 auto}
+  .d-foot{flex:0 0 auto;display:flex;gap:9px;margin-top:9px}
+  .d-done{flex:1;padding:8px 11px;display:flex;align-items:center;gap:8px;font-size:10.5px;color:#9EA9A4;white-space:nowrap;overflow:hidden}
+  .d-done b{color:#DFE6E2;font-size:11px;font-weight:600}
+  .d-note{flex:1;padding:8px 11px;display:flex;align-items:center;gap:9px}
+  .d-note .ph{flex:1;font-size:11px;color:#8E9893}
+</style>
+</head>
+<body>
+
+<!-- ===== 现状 ===== -->
+<div class="wrap">
+  <div class="cap"><b>现状</b><span>现在跑的这一版：横向轴 + 三栏</span></div>
+  <div class="frame" id="f0">
+    <div class="titlebar"><div class="brand"><i></i>日格</div><div class="tb-path">/ 今天</div><div class="tb-search">搜索条目、备注、标签<span class="k">Ctrl K</span></div><div class="winb"><i>–</i><i>▢</i><i>✕</i></div></div>
+    <div class="body">
+      <aside class="side">
+        <nav class="nav"><a class="on">◷ 今天<span class="c">8</span></a><a>▤ 日历</a><a>◭ 复盘</a><a>⌕ 搜索</a></nav>
+        <div class="sl">清单</div>
+        <div class="lists"><a><i style="background:var(--work)"></i>工作<span class="c">6</span></a><a><i style="background:var(--life)"></i>生活<span class="c">4</span></a><a><i style="background:var(--study)"></i>学习<span class="c">1</span></a></div>
+        <div class="sbot"><a>⚙ 设置</a><div class="hint">已备份 · 3 份</div></div>
+      </aside>
+      <main class="main" style="padding-top:0">
+        <div class="phead"><h1>11月16日<small>今天 · 周一 · 第 47 周</small></h1><div class="r"><button class="btn">前一天</button><button class="btn pri">＋ 新建</button></div></div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--ink2);padding-bottom:8px"><span>完成 <b style="color:#EAF0ED">3</b>/8</span><span style="color:#49544F">|</span><span>顺延 <b style="color:#EAF0ED">0</b></span><span style="color:#49544F">|</span><span class="ell">下一件：14:00 和张总过方案</span></div>
+        <div class="cur-tl">
+          <div class="bar2 done" style="left:0;width:72px"><i style="background:#46524C"></i>周会</div>
+          <div class="bar2 done" style="left:92px;width:76px"><i style="background:#46524C"></i>改预算</div>
+          <div class="bar2" style="left:226px;width:76px"><i></i>和张总…</div>
+          <div class="bar2" style="left:250px;top:34px;width:72px"><i></i>提醒测试</div>
+          <div class="bar2" style="left:392px;width:72px"><i style="background:var(--life)"></i>取快递</div>
+          <div class="bar2" style="left:498px;width:56px"><i style="background:var(--study)"></i>读…</div>
+          <div class="now" style="left:284px"></div>
+          <div class="axis"><i style="left:0">08:00</i><i style="left:16%">10:00</i><i style="left:33%">12:00</i><i style="left:50%">14:00</i><i style="left:66%">16:00</i><i style="left:83%">18:00</i><i style="left:100%">22:00</i></div>
+        </div>
+        <div class="cur-row">
+          <div class="cur-pane">
+            <div class="sec"><b>今日待办</b><span>5 件</span></div>
+            <div class="cur-t"><i class="bar" style="background:var(--work)"></i><i class="chk"></i><div class="tx"><div class="tt ell">和张总过方案</div><div class="tm">● 工作 · 14:00</div></div></div>
+            <div class="cur-t"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tx"><div class="tt ell">取快递</div><div class="tm">● 生活 · 18:00</div></div></div>
+            <div class="cur-t"><i class="bar" style="background:var(--study)"></i><i class="chk"></i><div class="tx"><div class="tt ell">读《深度工作》30 页</div><div class="tm">● 学习 · 21:00</div></div></div>
+            <div class="cur-t"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tx"><div class="tt ell">交电费</div><div class="tm">● 生活 · 无时间</div></div></div>
+          </div>
+          <div class="cur-pane">
+            <div class="sec"><b>已完成</b><span>2 件</span></div>
+            <div class="cur-t done"><i class="bar" style="background:#46524C"></i><i class="chk on"></i><div class="tx"><div class="tt ell">周会</div><div class="tm">● 工作 · 09:30</div></div></div>
+            <div class="cur-t done"><i class="bar" style="background:#46524C"></i><i class="chk on"></i><div class="tx"><div class="tt ell">改预算表</div><div class="tm">● 工作 · 11:00</div></div></div>
+          </div>
+          <div class="cur-pane">
+            <div class="sec"><b>今日一句</b><span>写点什么</span></div>
+            <div class="ta" style="flex:1">今天做成了什么？明天最重要的一件事？</div>
+            <div class="moods" style="margin-top:7px"><i>🙂</i><i>😐</i><i>😴</i><i>🔥</i><i>🌧</i></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ===== A 议程 ===== -->
+<div class="wrap">
+  <div class="cap"><b>方案 A · 议程</b><span>细时间尺只做概览，主区域是一条宽列表，右栏放进度与今日一句</span></div>
+  <div class="frame" id="fA">
+    <div class="titlebar"><div class="brand"><i></i>日格</div><div class="tb-path">/ 今天</div><div class="tb-search">搜索条目、备注、标签<span class="k">Ctrl K</span></div><div class="winb"><i>–</i><i>▢</i><i>✕</i></div></div>
+    <div class="body">
+      <aside class="side">
+        <nav class="nav"><a class="on">◷ 今天<span class="c">8</span></a><a>▤ 日历</a><a>◭ 复盘</a><a>⌕ 搜索</a></nav>
+        <div class="sl">清单</div>
+        <div class="lists"><a><i style="background:var(--work)"></i>工作<span class="c">6</span></a><a><i style="background:var(--life)"></i>生活<span class="c">4</span></a><a><i style="background:var(--study)"></i>学习<span class="c">1</span></a></div>
+        <div class="sbot"><a>⚙ 设置</a><div class="hint">已备份 · 3 份</div></div>
+      </aside>
+      <main class="main">
+        <div class="phead"><h1>11月16日<small>今天 · 周一 · 第 47 周</small></h1><div class="r"><button class="btn">前一天</button><button class="btn pri">＋ 新建</button></div></div>
+        <div class="a-rule">
+          <div class="hr" style="left:0"></div><div class="hr" style="left:16%"></div><div class="hr" style="left:33%"></div><div class="hr" style="left:50%"></div><div class="hr" style="left:66%"></div><div class="hr" style="left:83%"></div><div class="hr" style="left:100%"></div>
+          <div class="tk" style="left:0;transform:none">08</div><div class="tk" style="left:16%">10</div><div class="tk" style="left:33%">12</div><div class="tk" style="left:50%">14</div><div class="tk" style="left:66%">16</div><div class="tk" style="left:83%">18</div><div class="tk" style="left:100%">21</div>
+          <div class="ev done" style="left:11%;width:6%"></div>
+          <div class="ev done" style="left:24%;width:8%"></div>
+          <div class="ev" style="left:47%;width:9%"></div>
+          <div class="ev l2" style="left:46%;width:5%"></div>
+          <div class="ev" style="left:76%;width:6%"></div>
+          <div class="ev" style="left:93%;width:7%"></div>
+          <div class="now" style="left:52%"><b>14:47</b></div>
+        </div>
+        <div class="a-body">
+          <div class="a-list">
+            <div class="sec"><b>今日待办</b><span>5 件</span></div>
+            <div class="a-row hi"><i class="bar" style="background:var(--work)"></i><i class="chk"></i><div class="tt ell">和张总过方案</div><span class="tag">高</span><span class="w">14:00</span></div>
+            <div class="a-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">取快递</div><span class="w">18:00</span></div>
+            <div class="a-row"><i class="bar" style="background:var(--study)"></i><i class="chk"></i><div class="tt ell">读《深度工作》30 页</div><span class="w">21:00</span></div>
+            <div class="a-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">交电费</div><span class="w">无时间</span></div>
+            <div class="a-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">给妈妈打电话</div><span class="w">无时间</span></div>
+            <div class="a-div"></div>
+            <div class="sec" style="margin-bottom:2px"><b>已完成</b><span>2 件</span></div>
+            <div class="a-row done"><i class="bar" style="background:#46524C"></i><i class="chk on"></i><div class="tt ell">周会</div><span class="w">09:30</span></div>
+            <div class="a-row done"><i class="bar" style="background:#46524C"></i><i class="chk on"></i><div class="tt ell">改预算表</div><span class="w">11:00</span></div>
+          </div>
+          <div class="a-rail">
+            <div class="card a-ring">
+              <div class="ring"></div>
+              <div><div class="k">今天完成</div><div class="v">3 / 8</div><div class="k" style="margin-top:1px">顺延 0 次</div></div>
+            </div>
+            <div class="card a-note">
+              <div class="sec" style="margin-bottom:5px"><b>今日一句</b><span>写点什么</span></div>
+              <div class="ta" style="height:74px">今天做成了什么？明天最重要的一件事？</div>
+              <div class="moods" style="margin-top:7px"><i>🙂</i><i>😐</i><i>😴</i><i>🔥</i><i>🌧</i></div>
+            </div>
+            <div class="card a-week">
+              <div class="sec" style="margin:0"><b>本周</b><span>12 / 28 件</span></div>
+              <div class="bars"><i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:30%"></i><i class="on" style="height:85%"></i><i style="height:24%"></i><i style="height:18%"></i></div>
+              <div class="xs"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ===== B 卡片 ===== -->
+<div class="wrap">
+  <div class="cap"><b>方案 B · 卡片</b><span>顶部三张概览卡，待办做成两列卡片（标题能放两行），底部一条今日一句 + 已完成</span></div>
+  <div class="frame" id="fB">
+    <div class="titlebar"><div class="brand"><i></i>日格</div><div class="tb-path">/ 今天</div><div class="tb-search">搜索条目、备注、标签<span class="k">Ctrl K</span></div><div class="winb"><i>–</i><i>▢</i><i>✕</i></div></div>
+    <div class="body">
+      <aside class="side">
+        <nav class="nav"><a class="on">◷ 今天<span class="c">8</span></a><a>▤ 日历</a><a>◭ 复盘</a><a>⌕ 搜索</a></nav>
+        <div class="sl">清单</div>
+        <div class="lists"><a><i style="background:var(--work)"></i>工作<span class="c">6</span></a><a><i style="background:var(--life)"></i>生活<span class="c">4</span></a><a><i style="background:var(--study)"></i>学习<span class="c">1</span></a></div>
+        <div class="sbot"><a>⚙ 设置</a><div class="hint">已备份 · 3 份</div></div>
+      </aside>
+      <main class="main">
+        <div class="phead"><h1>11月16日<small>今天 · 周一 · 第 47 周</small></h1><div class="r"><button class="btn">前一天</button><button class="btn pri">＋ 新建</button></div></div>
+        <div class="b-kpis">
+          <div class="card b-kpi" style="border-color:#3D5A52"><div class="k">下一件</div><div class="v">14:00 <em class="ell">和张总过方案</em></div></div>
+          <div class="card b-kpi"><div class="k">今天完成</div><div class="v">3 <em>/ 8 件</em></div><div class="track"><i style="width:38%"></i></div></div>
+          <div class="card b-kpi"><div class="k">顺延</div><div class="v">0 <em>次</em></div><div class="k" style="margin-top:5px">第 47 周</div></div>
+        </div>
+        <div class="b-ghead"><div class="sec" style="margin:0"><b>今日待办</b><span>5 件</span></div></div>
+        <div class="b-grid">
+          <div class="card b-card"><i class="bar" style="background:var(--work)"></i><i class="chk"></i><div class="tx"><div class="tt">和张总过方案</div><div class="tm">● 工作 · 14:00 <span class="tag">高</span></div></div></div>
+          <div class="card b-card"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tx"><div class="tt">取快递</div><div class="tm">● 生活 · 18:00</div></div></div>
+          <div class="card b-card"><i class="bar" style="background:var(--study)"></i><i class="chk"></i><div class="tx"><div class="tt">读《深度工作》30 页，把第二章做成一页笔记</div><div class="tm">● 学习 · 21:00</div></div></div>
+          <div class="card b-card"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tx"><div class="tt">交电费</div><div class="tm">● 生活 · 无时间</div></div></div>
+          <div class="card b-card"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tx"><div class="tt">给妈妈打电话</div><div class="tm">● 生活 · 无时间</div></div></div>
+          <div class="card b-card b-ghost">＋ 添加一件事</div>
+        </div>
+        <div class="b-foot">
+          <div class="card b-note"><span style="font-size:11px;color:#9EA9A4">今日一句</span><div class="ph ell">今天做成了什么？明天最重要的一件事？</div><div class="moods"><i>🙂</i><i>😐</i><i>🔥</i></div></div>
+          <div class="card b-done">
+            <div class="l"><b>已完成 2 件</b></div>
+            <div class="l ell"><i class="dot" style="background:#4E9A93"></i>周会 · 09:30</div>
+            <div class="l ell"><i class="dot" style="background:#4E9A93"></i>改预算表 · 11:00</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ===== C 时间轴 ===== -->
+<div class="wrap">
+  <div class="cap"><b>方案 C · 时间轴为主</b><span>上面一块真正的时间带（两道泳道、块里带时间），下面紧凑列表 + 右栏</span></div>
+  <div class="frame" id="fC">
+    <div class="titlebar"><div class="brand"><i></i>日格</div><div class="tb-path">/ 今天</div><div class="tb-search">搜索条目、备注、标签<span class="k">Ctrl K</span></div><div class="winb"><i>–</i><i>▢</i><i>✕</i></div></div>
+    <div class="body">
+      <aside class="side">
+        <nav class="nav"><a class="on">◷ 今天<span class="c">8</span></a><a>▤ 日历</a><a>◭ 复盘</a><a>⌕ 搜索</a></nav>
+        <div class="sl">清单</div>
+        <div class="lists"><a><i style="background:var(--work)"></i>工作<span class="c">6</span></a><a><i style="background:var(--life)"></i>生活<span class="c">4</span></a><a><i style="background:var(--study)"></i>学习<span class="c">1</span></a></div>
+        <div class="sbot"><a>⚙ 设置</a><div class="hint">已备份 · 3 份</div></div>
+      </aside>
+      <main class="main">
+        <div class="phead"><h1>11月16日<small>今天 · 周一 · 第 47 周</small></h1><div class="r"><button class="btn">前一天</button><button class="btn pri">＋ 新建</button></div></div>
+        <div class="card c-tl">
+          <div class="lane" style="top:14px"></div>
+          <div class="lane" style="top:44px"></div>
+          <div class="blk done" style="left:3.5%;width:84px;top:14px"><span class="tm">09:30</span><span class="bt">周会</span></div>
+          <div class="blk done" style="left:15%;width:88px;top:14px"><span class="tm">11:00</span><span class="bt">改预算表</span></div>
+          <div class="blk" style="left:38.5%;width:96px;top:14px"><span class="tm">14:00</span><span class="bt">和张总过方案</span></div>
+          <div class="blk" style="left:44.5%;width:84px;top:44px"><span class="tm">14:46</span><span class="bt">提醒测试</span></div>
+          <div class="blk" style="left:69%;width:82px;top:14px"><span class="tm">18:00</span><span class="bt">取快递</span></div>
+          <div class="blk" style="right:0;width:74px;top:14px"><span class="tm">21:00</span><span class="bt">读书</span></div>
+          <div class="now" style="left:44%"><b>14:47</b></div>
+          <div class="axis"><i style="left:0;transform:none">09:00</i><i style="left:15.4%">11:00</i><i style="left:30.8%">13:00</i><i style="left:46.2%">15:00</i><i style="left:61.5%">17:00</i><i style="left:76.9%">19:00</i><i style="left:92.3%">21:00</i></div>
+        </div>
+        <div class="c-body">
+          <div class="c-list">
+            <div class="sec"><b>今日待办</b><span>5 件</span></div>
+            <div class="c-row"><i class="bar" style="background:var(--work)"></i><i class="chk"></i><div class="tt ell">和张总过方案</div><span class="tag">高</span><span class="tm">14:00</span></div>
+            <div class="c-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">取快递</div><span class="tm">18:00</span></div>
+            <div class="c-row"><i class="bar" style="background:var(--study)"></i><i class="chk"></i><div class="tt ell">读《深度工作》30 页</div><span class="tm">21:00</span></div>
+            <div class="c-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">交电费</div><span class="tm">无时间</span></div>
+            <div class="c-row"><i class="bar" style="background:var(--life)"></i><i class="chk"></i><div class="tt ell">给妈妈打电话</div><span class="tm">无时间</span></div>
+            <div class="c-fold">✓ 已完成 2 件<span style="opacity:.7">· 周会 09:30 · 改预算表 11:00</span>⌄</div>
+          </div>
+          <div class="c-rail">
+            <div class="card" style="flex:1;display:flex;flex-direction:column;padding:10px 11px">
+              <div class="sec" style="margin-bottom:5px"><b>今日一句</b><span>写点什么</span></div>
+              <div class="ta" style="flex:1">今天做成了什么？明天最重要的一件事？</div>
+              <div class="moods" style="margin-top:7px"><i>🙂</i><i>😐</i><i>😴</i><i>🔥</i><i>🌧</i></div>
+            </div>
+            <div class="card a-ring"><div class="ring" style="width:38px;height:38px"></div><div><div class="k">今天</div><div class="v" style="font-size:13px">3 / 8</div></div></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ===== D 时段 ===== -->
+<div class="wrap">
+  <div class="cap"><b>方案 D · 时段四列</b><span>上午 / 下午 / 晚上 / 待安排，四列看一天；底部一行「已完成 + 今日一句」</span></div>
+  <div class="frame" id="fD">
+    <div class="titlebar"><div class="brand"><i></i>日格</div><div class="tb-path">/ 今天</div><div class="tb-search">搜索条目、备注、标签<span class="k">Ctrl K</span></div><div class="winb"><i>–</i><i>▢</i><i>✕</i></div></div>
+    <div class="body">
+      <aside class="side">
+        <nav class="nav"><a class="on">◷ 今天<span class="c">8</span></a><a>▤ 日历</a><a>◭ 复盘</a><a>⌕ 搜索</a></nav>
+        <div class="sl">清单</div>
+        <div class="lists"><a><i style="background:var(--work)"></i>工作<span class="c">6</span></a><a><i style="background:var(--life)"></i>生活<span class="c">4</span></a><a><i style="background:var(--study)"></i>学习<span class="c">1</span></a></div>
+        <div class="sbot"><a>⚙ 设置</a><div class="hint">已备份 · 3 份</div></div>
+      </aside>
+      <main class="main">
+        <div class="phead"><h1>11月16日<small>今天 · 周一 · 第 47 周 · 完成 3/8</small></h1><div class="r"><button class="btn">前一天</button><button class="btn pri">＋ 新建</button></div></div>
+        <div class="d-cols">
+          <div class="card d-col">
+            <div class="h">上午<em>3 件</em></div>
+            <div class="d-it done"><i class="bar" style="background:#46524C"></i><div class="tx"><div class="tm">09:30 – 10:00</div><div class="tt">周会</div></div></div>
+            <div class="d-it done"><i class="bar" style="background:#46524C"></i><div class="tx"><div class="tm">11:00 – 12:00</div><div class="tt">改预算表</div></div></div>
+            <div class="d-it"><i class="bar" style="background:var(--life)"></i><div class="tx"><div class="tm">08:00 – 08:30</div><div class="tt">晨跑 5 公里</div></div></div>
+            <div class="d-ghost">＋ 上午再加一件</div>
+          </div>
+          <div class="card d-col">
+            <div class="h">下午<em>2 件</em></div>
+            <div class="d-it" style="background:#2C3A34"><i class="bar" style="background:var(--work)"></i><div class="tx"><div class="tm">14:00 – 15:00 · 进行中</div><div class="tt">和张总过方案</div></div></div>
+            <div class="d-it"><i class="bar" style="background:var(--work)"></i><div class="tx"><div class="tm">14:46</div><div class="tt">提醒测试</div></div></div>
+            <div class="d-ghost">＋ 下午再加一件</div>
+          </div>
+          <div class="card d-col">
+            <div class="h">晚上<em>2 件</em></div>
+            <div class="d-it"><i class="bar" style="background:var(--life)"></i><div class="tx"><div class="tm">18:00</div><div class="tt">取快递</div></div></div>
+            <div class="d-it"><i class="bar" style="background:var(--study)"></i><div class="tx"><div class="tm">21:00 – 22:00</div><div class="tt">读《深度工作》30 页</div></div></div>
+            <div class="d-ghost">＋ 晚上再加一件</div>
+          </div>
+          <div class="card d-col" style="background:#1F2522">
+            <div class="h">待安排<em>2 件</em></div>
+            <div class="d-it"><i class="bar" style="background:var(--life)"></i><div class="tx"><div class="tm">无时间</div><div class="tt">交电费</div></div></div>
+            <div class="d-it"><i class="bar" style="background:var(--life)"></i><div class="tx"><div class="tm">无时间</div><div class="tt">给妈妈打电话</div></div></div>
+            <div class="d-ghost">＋ 随手记</div>
+          </div>
+        </div>
+        <div class="d-foot">
+          <div class="card d-done"><span style="color:#4E9A93">✓</span><b>已完成 2 件</b><span class="ell">周会 09:30 · 改预算表 11:00</span></div>
+          <div class="card d-note"><span style="font-size:11px;color:#9EA9A4">今日一句</span><div class="ph ell">今天做成了什么？明天最重要的一件事？</div><div class="moods"><i>🙂</i><i>😐</i><i>😴</i><i>🔥</i><i>🌧</i></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
