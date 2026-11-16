@@ -46,7 +46,7 @@ cd windows && npm start
 
 # 测试（需要先清掉 ELECTRON_RUN_AS_NODE）
 $env:ELECTRON_RUN_AS_NODE=$null
-node test/e2e.js              # 桌面端 40 项
+node test/e2e.js              # 桌面端 47 项
 node test/cloud-sync-e2e.js   # 云同步 12 项
 ```
 

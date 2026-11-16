@@ -22,6 +22,51 @@ const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); r
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
 const LIST = { 工作: 'work', 生活: 'life', 学习: 'study' };
 
+/* 中文数字 → 阿拉伯数字：三点、八点半、十点、二十三分、十一点 */
+const CN_DIGIT = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+function cnNum(s) {
+  const t = String(s == null ? '' : s).replace(/\s+/g, '');
+  if (!t) return NaN;
+  if (/^[0-9]+$/.test(t)) return parseInt(t, 10);
+  if (t === '十') return 10;
+  if (!/^[零一二两三四五六七八九十]+$/.test(t)) return NaN;
+  if (t.length === 1) return CN_DIGIT[t];
+  if (t[0] === '十') return 10 + (CN_DIGIT[t[1]] || 0);
+  if (t[1] === '十') return (CN_DIGIT[t[0]] || 0) * 10 + (t[2] ? (CN_DIGIT[t[2]] || 0) : 0);
+  return NaN;
+}
+
+/* 分钟：「半」「一刻」「三刻」「20」「二十分」 */
+function minuteOf(spec) {
+  if (!spec) return 0;
+  const t = String(spec).replace(/\s*分$/, '').trim();
+  if (t === '半') return 30;
+  if (t === '一刻') return 15;
+  if (t === '三刻') return 45;
+  const n = cnNum(t);
+  return Number.isFinite(n) && n >= 0 && n < 60 ? n : 0;
+}
+
+/* 中文数字或阿拉伯数字的小时 + 时段词 → 24 小时制；不合法的返回 null */
+function hourOf(hh, period) {
+  let h = cnNum(hh);
+  if (!Number.isFinite(h)) return null;
+  const p = period || '';
+  if (/下午|傍晚|晚上|晚间|夜里|深夜|晚/.test(p)) {
+    if (h < 12) h += 12;
+  } else if (p === '中午') {
+    if (h < 11) h += 12;
+  } else if (p === '凌晨') {
+    if (h === 12) h = 0;
+  } else if (/早上|早|上午|清晨|早晨/.test(p)) {
+    // 原样：早上 8 点 = 08:00
+  } else if (h >= 1 && h <= 6) {
+    // 只说「三点」按下午算（15:00），凌晨三点请说「凌晨三点」
+    h += 12;
+  }
+  return h % 24;
+}
+
 const input = document.getElementById('cap-input');
 const chipsEl = document.getElementById('cap-chips');
 const destEl = document.getElementById('cap-dest');
@@ -65,31 +110,56 @@ function parse(text, base) {
     }) || take(/(\d{1,2})月(\d{1,2})[日号]/, (m) => {
       const d = parseYmd(base);
       out.date = `${d.getFullYear()}-${pad(+m[1])}-${pad(+m[2])}`;
-    }) || take(/(\d{1,2})[-/](\d{1,2})/, (m) => {
+    }) || take(/(?<![\d:：])(\d{1,2})[-/](\d{1,2})(?![\d点时:：])/, (m) => {
       const d = parseYmd(base);
       out.date = `${d.getFullYear()}-${pad(+m[1])}-${pad(+m[2])}`;
     });
   }
 
   // 时间
-  take(/(上午|下午|晚上|中午)?\s*(\d{1,2})[:：点](\d{0,2})分?\s*[-–—到至]\s*(\d{1,2})[:：点](\d{0,2})/, (m) => {
-    const conv = (h, mm, ap) => {
-      let hh = +h;
-      if ((ap === '下午' || ap === '晚上') && hh < 12) hh += 12;
-      if (ap === '中午' && hh < 11) hh += 12;
-      return `${pad(hh)}:${pad(mm ? +mm : 0)}`;
-    };
-    out.start = conv(m[2], m[3], m[1]);
-    out.end = conv(m[4], m[5], m[1]);
-  }) || take(/(上午|下午|晚上|中午)?\s*(\d{1,2})[:：点](\d{0,2})分?半?/, (m) => {
-    let hh = +m[2];
-    if ((m[1] === '下午' || m[1] === '晚上') && hh < 12) hh += 12;
-    if (m[1] === '中午' && hh < 11) hh += 12;
-    const mm = /半/.test(m[0]) ? 30 : (m[3] ? +m[3] : 0);
-    out.start = `${pad(hh)}:${pad(mm)}`;
-    const end = new Date(2000, 0, 1, hh, mm + 60);
-    out.end = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
-  });
+  // 只要句子里提到了时间就必须记下来：支持 15:30 / 15点 / 下午三点 / 三点半 / 三点一刻 /
+  // 上午九点二十 / 3点到5点 / 下午2-4点；中文数字和阿拉伯数字等价
+  const NUM = '(?:[0-9]{1,2}|[零一二两三四五六七八九十]{1,3})';
+  const PERIOD = '(?:凌晨|清晨|早晨|早上|早|上午|中午|下午|傍晚|晚间|晚上|夜里|深夜|晚)';
+  const MINUTE = '(?:半|一刻|三刻|' + NUM + '\\s*分|' + NUM + ')';
+  const core = (p, h, m) => '(?<' + p + '>' + PERIOD + ')?\\s*(?<' + h + '>' + NUM + ')\\s*[:：时点](?<' + m + '>' + MINUTE + ')?';
+  const RE_RANGE = new RegExp(
+    core('p1', 'h1', 'm1') + '\\s*(?:[-–—~～]|到|至)\\s*(?<p2>' + PERIOD + ')?\\s*(?<h2>' + NUM + ')\\s*(?:[:：时点](?<m2>' + MINUTE + ')?)?',
+  );
+  // 前一段省略「点」的写法：下午2-4点 / 3-5点（第二段必须有「点」，否则「3-5天」会被误判成时间）
+  const RE_RANGE2 = new RegExp(
+    '(?<p1>' + PERIOD + ')?\\s*(?<h1>' + NUM + ')\\s*(?:[-–—~～]|到|至)\\s*(?<p2>' + PERIOD + ')?\\s*(?<h2>' + NUM + ')\\s*[:：时点](?<m2>' + MINUTE + ')?',
+  );
+  const RE_TIME = new RegExp(core('p', 'h', 'm'));
+
+  const setStartEnd = (h1, m1, h2, m2) => {
+    out.start = `${pad(h1)}:${pad(m1)}`;
+    if (h2 == null) {
+      const end = new Date(2000, 0, 1, h1, m1 + 60);
+      out.end = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    } else {
+      out.end = `${pad(h2)}:${pad(m2)}`;
+    }
+  };
+  const span = rest.match(RE_RANGE) || rest.match(RE_RANGE2);
+  if (span) {
+    const h1 = hourOf(span.groups.h1, span.groups.p1);
+    const h2 = hourOf(span.groups.h2, span.groups.p2 || span.groups.p1);
+    if (h1 != null && h2 != null) {
+      setStartEnd(h1, minuteOf(span.groups.m1), h2, minuteOf(span.groups.m2));
+      rest = rest.replace(span[0], ' ');
+    }
+  }
+  if (!out.start) {
+    const one = rest.match(RE_TIME);
+    if (one) {
+      const h = hourOf(one.groups.h, one.groups.p);
+      if (h != null) {
+        setStartEnd(h, minuteOf(one.groups.m), null, 0);
+        rest = rest.replace(one[0], ' ');
+      }
+    }
+  }
 
   // 标签 / 清单 / 优先级 / 时长
   const tags = [...rest.matchAll(/#([^\s#]+)/g)].map((m) => m[1]);

@@ -125,6 +125,26 @@ function createCapture() {
   return captureWin;
 }
 
+/*
+ * 主窗口尺寸：约占屏幕工作区面积的 1/3，比例 3:2，居中。
+ * 太大挡事；760×500 是布局还能看的下限（左边栏固定 196px）。
+ */
+function mainWindowBounds() {
+  const { workArea } = screen.getPrimaryDisplay();
+  const aspect = 1.5;
+  const area = (workArea.width * workArea.height) / 3;
+  let w = Math.round(Math.sqrt(area * aspect));
+  let h = Math.round(w / aspect);
+  w = Math.max(760, Math.min(w, 1600));
+  h = Math.max(500, Math.min(h, 1000));
+  return {
+    width: w,
+    height: h,
+    x: Math.round(workArea.x + (workArea.width - w) / 2),
+    y: Math.round(workArea.y + (workArea.height - h) / 2),
+  };
+}
+
 function createMain() {
   if (mainWin && !mainWin.isDestroyed()) {
     mainWin.show();
@@ -132,10 +152,9 @@ function createMain() {
     return mainWin;
   }
   mainWin = new BrowserWindow({
-    width: 1180,
-    height: 760,
-    minWidth: 980,
-    minHeight: 640,
+    ...mainWindowBounds(),
+    minWidth: 760,
+    minHeight: 500,
     frame: false,
     backgroundColor: '#FBFAF7',
     show: false,

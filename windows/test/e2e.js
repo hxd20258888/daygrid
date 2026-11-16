@@ -133,6 +133,20 @@ async function main() {
   check('周一说「下周三」是 11/25', dow.nextWedFromMon === '2026-11-25', dow.nextWedFromMon);
   check('「周三」本周已过则顺延', dow.wedFromFri === '2026-11-18', dow.wedFromFri);
   check('「大后天」不残留「大」', dow.bigAfter.date === '2026-11-19' && !dow.bigAfter.title.includes('大'), `${dow.bigAfter.date} ${dow.bigAfter.title}`);
+
+  /* 时间解析回归：提到时间就必须记下来，中文数字也要认 */
+  const tp = await capture.evaluate(() => ({
+    cn: parse('后天下午三点 对方案', '2026-11-16'),
+    half: parse('晚上八点半 聚餐', '2026-11-16'),
+    range: parse('下午2-4点 评审', '2026-11-16'),
+    clock: parse('15:30-17:00 评审', '2026-11-16'),
+    none: parse('整理文档', '2026-11-16'),
+  }));
+  check('「后天下午三点」= 11/18 15:00–16:00', tp.cn.date === '2026-11-18' && tp.cn.start === '15:00' && tp.cn.end === '16:00', `${tp.cn.date} ${tp.cn.start}-${tp.cn.end}`);
+  check('「晚上八点半」= 20:30–21:30', tp.half.start === '20:30' && tp.half.end === '21:30', `${tp.half.start}-${tp.half.end}`);
+  check('时间段「下午2-4点」= 14:00–16:00', tp.range.start === '14:00' && tp.range.end === '16:00', `${tp.range.start}-${tp.range.end}`);
+  check('「15:30-17:00」不吃掉成日期', tp.clock.start === '15:30' && tp.clock.end === '17:00', `${tp.clock.start}-${tp.clock.end}`);
+  check('没提时间就不记时间', tp.none.start === null, String(tp.none.start));
   await capture.screenshot({ path: path.join(SHOTS, '02-capture.png') });
 
   await capture.press('#cap-input', 'Enter');
@@ -151,6 +165,23 @@ async function main() {
   console.log('主窗口文本长度:', bodyLen);
   await mainWin.waitForSelector('#view-today .ev, #task-list .task', { timeout: 15000 });
   check('主窗口打开「今天」', (await mainWin.locator('#tb-path').textContent()).includes('今天'));
+
+  const geo = await app.evaluate(({ BrowserWindow, screen }) => {
+    const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('app.html'));
+    const b = w.getBounds();
+    const wa = screen.getPrimaryDisplay().workArea;
+    return {
+      b,
+      wa,
+      areaRatio: (b.width * b.height) / (wa.width * wa.height),
+      dxLeft: b.x - wa.x,
+      dxRight: (wa.x + wa.width) - (b.x + b.width),
+      dyTop: b.y - wa.y,
+      dyBottom: (wa.y + wa.height) - (b.y + b.height),
+    };
+  });
+  check('主窗口约占屏幕面积 1/3', geo.areaRatio > 0.28 && geo.areaRatio < 0.40, `${geo.b.width}x${geo.b.height} @ ${geo.areaRatio.toFixed(3)}`);
+  check('主窗口居中', Math.abs(geo.dxLeft - geo.dxRight) <= 8 && Math.abs(geo.dyTop - geo.dyBottom) <= 8, `x ${geo.dxLeft}/${geo.dxRight} y ${geo.dyTop}/${geo.dyBottom}`);
 
   const titles = await mainWin.locator('#task-list .tt').allTextContents();
   check('新条目进入今日待办', titles.some((t) => t.includes('和设计对稿')), titles.join(' | '));
