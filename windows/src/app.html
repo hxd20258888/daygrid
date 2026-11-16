@@ -50,17 +50,23 @@
           </div>
         </div>
         <div class="statline" id="statline"></div>
-        <div class="today-grid">
-          <div class="timeline" id="timeline">
-            <div class="tl-hours" id="tl-hours"></div>
-            <div class="tl-body" id="tl-body"></div>
+        <div class="today-stack">
+          <div class="tl-h" id="timeline">
+            <div class="tlh-plot" id="tlh-plot">
+              <div class="tlh-lanes" id="tlh-lanes"></div>
+            </div>
+            <div class="tlh-axis" id="tlh-axis"></div>
           </div>
-          <div class="side-panel">
-            <div class="panel-h"><b>今日待办</b><span id="task-count">0 件</span></div>
-            <ul class="tasklist" id="task-list"></ul>
-            <div class="panel-h" style="margin-top:14px"><b>已完成</b><span id="done-count">0 件</span></div>
-            <ul class="tasklist" id="done-list"></ul>
-            <div class="reflect">
+          <div class="today-row">
+            <div class="pane">
+              <div class="panel-h"><b>今日待办</b><span id="task-count">0 件</span></div>
+              <ul class="tasklist" id="task-list"></ul>
+            </div>
+            <div class="pane">
+              <div class="panel-h"><b>已完成</b><span id="done-count">0 件</span></div>
+              <ul class="tasklist" id="done-list"></ul>
+            </div>
+            <div class="pane reflect">
               <div class="lb"><span>今日一句</span><span id="log-hint">写点什么</span></div>
               <textarea id="daily-summary" placeholder="今天做成了什么？明天最重要的一件事？" maxlength="300"></textarea>
               <div class="moods" id="moods">
@@ -252,6 +258,7 @@
   </div>
 </div>
 
+<div class="tip" id="tip"><div class="tip-t" id="tip-t"></div><div class="tip-s" id="tip-s"></div><div class="tip-n" id="tip-n"></div></div>
 <div class="toast" id="toast"></div>
 <script src="app.js"></script>
 </body>

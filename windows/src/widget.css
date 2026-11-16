@@ -117,6 +117,13 @@ input,textarea{font:inherit;color:inherit;user-select:text}
 body.collapsed .widget{display:none}
 body.collapsed .w-mini{display:flex}
 
+/* 悬停看全文：窗口只有 392 宽，所以提示自己折行 */
+.tip{position:fixed;z-index:60;max-width:352px;padding:7px 10px;border-radius:8px;background:#1E2A26;color:#F3F7F5;font-size:12px;line-height:1.5;box-shadow:0 12px 28px rgba(12,24,20,.42);opacity:0;visibility:hidden;transition:opacity .1s;pointer-events:none;word-break:break-word}
+.tip.on{opacity:1;visibility:visible}
+.tip-t{font-weight:600}
+.tip-s{font-size:10px;color:#9FB3AC;margin-top:2px}
+.tip-s:empty{display:none}
+
 /* ==================== 深色主题 ==================== */
 body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#C6CFCA;--ink3:#9EA9A4;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
 body[data-theme="dark"] .widget{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 18px 44px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}

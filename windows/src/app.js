@@ -78,78 +78,91 @@ function switchView(v) {
 }
 
 /* ---------------- 今天 ---------------- */
-function renderHours() {
-  const box = $('tl-hours');
-  let html = '';
-  for (let h = 8; h <= 21; h++) html += `<div class="tl-hour"><span>${pad(h)}:00</span></div>`;
-  box.innerHTML = html;
+/* 时间轴的横轴范围：默认 08:00–21:00，有更早/更晚的条目就往外扩 */
+function timeRange(entries) {
+  let from = 8 * 60;
+  let to = 21 * 60;
+  for (const e of entries) {
+    if (!e.start) continue;
+    const s = hhmmToMin(e.start);
+    const en = e.end ? Math.max(hhmmToMin(e.end), s + 20) : s + 40;
+    from = Math.min(from, Math.floor(s / 60) * 60);
+    to = Math.max(to, Math.ceil(en / 60) * 60);
+  }
+  return { from, to: Math.max(to, from + 120) };
 }
 
-function layoutEvents(entries) {
-  const list = entries
+/* 横向时间轴：左→右是时间，重叠的条目往下一道排 */
+function renderTimeline(entries) {
+  const lanes = $('tlh-lanes');
+  const axis = $('tlh-axis');
+  const plot = $('tlh-plot');
+  const { from, to } = timeRange(entries);
+  const span = to - from;
+  const now = nowMin();
+  const pct = (min) => Math.max(0, Math.min(100, ((min - from) / span) * 100));
+
+  const items = entries
     .filter((e) => e.start)
     .map((e) => {
-      const start = hhmmToMin(e.start);
-      const end = e.end ? Math.max(hhmmToMin(e.end), start + 20) : start + 40;
-      return { e, start, end };
+      const s = hhmmToMin(e.start);
+      const en = e.end ? Math.max(hhmmToMin(e.end), s + 20) : s + 40;
+      return { e, s, en };
     })
-    .sort((a, b) => a.start - b.start || a.end - b.end);
-  const groups = [];
-  for (const it of list) {
-    const g = groups[groups.length - 1];
-    if (g && it.start < g.end) { g.items.push(it); g.end = Math.max(g.end, it.end); }
-    else groups.push({ items: [it], start: it.start, end: it.end });
-  }
-  const out = [];
-  for (const g of groups) {
-    const cols = [];
-    for (const it of g.items) {
-      let placed = false;
-      for (const col of cols) {
-        if (it.start >= col[col.length - 1].end) { col.push(it); placed = true; break; }
-      }
-      if (!placed) cols.push([it]);
-    }
-    for (let c = 0; c < cols.length; c++) {
-      for (const it of cols[c]) {
-        out.push({ ...it, col: c, cols: cols.length });
-      }
-    }
-  }
-  return out;
-}
+    .sort((a, b) => a.s - b.s || a.en - b.en);
 
-function renderTimeline(entries) {
-  const body = $('tl-body');
-  const now = nowMin();
-  const items = layoutEvents(entries);
-  let html = '';
+  // 半小时的会只有二十来像素，字全被截掉；给每根条一个最小宽度（时间位置仍按真实比例）
+  const plotW = plot.clientWidth || 520;
+  const minSpan = (72 / plotW) * span;
+  for (const it of items) it.visEnd = Math.min(to, Math.max(it.en, it.s + minSpan));
+
+  const laneEnds = [];
   for (const it of items) {
-    const top = ((it.start - 480) / 60) * 40;
-    const height = Math.max(20, ((it.end - it.start) / 60) * 40);
-    if (top < -40 || top > 570) continue;
-    const e = it.e;
-    const cls = ['ev', e.status === 'done' ? 'done' : '', e.status !== 'done' && now >= it.start && now < it.end ? 'now' : '', e.priority >= 2 ? 'p2' : ''].filter(Boolean).join(' ');
-    const width = 100 / it.cols;
-    const left = it.col * width;
-    const compact = height < 34;
-    html += `<div class="${cls}" data-id="${e.id}" style="top:${top}px;height:${height}px;left:${left}%;width:calc(${width}% - 8px);${compact ? 'padding:3px 9px' : ''}">
-      <div class="evt" ${compact ? 'style="font-size:11px"' : ''}>${esc(e.title)}</div>
-      ${compact ? '' : `<div class="evm">${timeLabel(e)} · ${esc(e.listName)}${e.status === 'done' ? ' · 已完成' : ''}</div>`}
+    let lane = laneEnds.findIndex((end) => it.s >= end);
+    if (lane < 0) { lane = laneEnds.length; laneEnds.push(it.visEnd); } else laneEnds[lane] = it.visEnd;
+    it.lane = lane;
+  }
+  const laneCount = Math.max(1, laneEnds.length);
+  plot.style.height = `${Math.max(52, Math.min(4, laneCount) * 28)}px`;
+
+  let html = '';
+  for (let h = Math.ceil(from / 60); h * 60 <= to; h++) {
+    html += `<i class="tlh-tick" style="left:${pct(h * 60)}%"></i>`;
+  }
+  for (const it of items) {
+    const done = it.e.status === 'done';
+    const cls = ['th', done ? 'done' : '', !done && now >= it.s && now < it.en ? 'now' : '', it.e.priority >= 2 && !done ? 'p2' : ''].filter(Boolean).join(' ');
+    const sub = `${timeLabel(it.e)} · ${it.e.listName}${done ? ' · 已完成' : ''}`;
+    const note = (it.e.notes || '').trim();
+    html += `<div class="${cls}" data-id="${it.e.id}" style="left:${pct(it.s)}%;width:${Math.max(3.5, pct(it.visEnd) - pct(it.s))}%;top:${it.lane * 28}px"
+      data-tip="${esc(it.e.title)}" data-sub="${esc(sub)}"${note ? ` data-note="${esc(note)}"` : ''}>
+      ${done ? '<span class="th-ck">✓</span>' : ''}<span class="th-t">${esc(it.e.title)}</span>
     </div>`;
   }
-  if (now >= 480 && now <= 1320) {
-    html += `<div class="nowline" style="top:${((now - 480) / 60) * 40}px"><em>${pad(Math.floor(now / 60))}:${pad(now % 60)}</em></div>`;
+  if (now >= from && now <= to) {
+    html += `<div class="nowline-h" style="left:${pct(now)}%"><em>${pad(Math.floor(now / 60))}:${pad(now % 60)}</em></div>`;
   }
-  body.innerHTML = html;
+  if (!items.length) html += '<div class="tlh-empty">今天还没有排时间的条目，双击左边日历或按 N 新建</div>';
+  lanes.innerHTML = html;
+
+  // 刻度：每小时一条；跨度大就两小时一标
+  const stepH = span / 60 > 10 ? 2 : 1;
+  let tickHtml = '';
+  for (let h = Math.ceil(from / 60); h * 60 <= to; h += stepH) {
+    tickHtml += `<span style="left:${pct(h * 60)}%">${pad(h)}:00</span>`;
+  }
+  axis.innerHTML = tickHtml;
 }
 
 function taskHtml(e) {
-  return `<li class="task" data-id="${e.id}">
-    ${e.priority >= 2 ? '<div class="pri"></div>' : ''}
-    <i class="c ${e.status === 'done' ? 'done' : ''}" data-toggle="${e.id}"></i>
+  const done = e.status === 'done';
+  const note = (e.notes || '').trim();
+  const sub = `${done ? '已完成 · ' : ''}${e.listName} · ${e.start || '无时间'}${e.end ? '–' + e.end : ''}`;
+  return `<li class="task ${done ? 'done' : 'plan'}" data-id="${e.id}" style="--accent:${accent(e.listColor)}">
+    ${e.priority >= 2 && !done ? '<div class="pri"></div>' : ''}
+    <i class="c ${done ? 'done' : ''}" data-toggle="${e.id}"></i>
     <div class="tx">
-      <div class="tt">${esc(e.title)}</div>
+      <div class="tt" data-tip="${esc(e.title)}" data-sub="${esc(sub)}"${note ? ` data-note="${esc(note)}"` : ''}>${esc(e.title)}</div>
       <div class="tm"><i style="background:${accent(e.listColor)}"></i>${esc(e.listName)} · ${e.start || '无时间'}</div>
     </div>
   </li>`;
@@ -166,11 +179,12 @@ async function loadToday() {
   const open = entries.filter((e) => e.status !== 'done');
   const postponed = entries.reduce((a, e) => a + e.postponed, 0);
   const next = entries.filter((e) => e.start && e.status !== 'done').sort((a, b) => a.start.localeCompare(b.start))[0];
+  const nextText = next ? `下一件：${next.start} ${next.title}` : '今天没有排时间的了';
   $('statline').innerHTML = `
     <span>完成 <b>${done.length}</b>/${entries.length}</span>
     <span class="bar"><i style="width:${entries.length ? Math.round((done.length / entries.length) * 100) : 0}%"></i></span>
     <span class="sep"></span><span>顺延 <b class="${postponed ? 'up' : ''}">${postponed}</b></span>
-    <span class="sep"></span><span>${next ? `下一件：${next.start} ${esc(next.title)}` : '今天没有排时间的了'}</span>`;
+    <span class="sep"></span><span class="next"${next ? ` data-tip="${esc(nextText)}"` : ''}>${esc(nextText)}</span>`;
 
   renderTimeline(entries);
   $('task-list').innerHTML = open.length ? open.map(taskHtml).join('') : '<li class="empty">今天还没有待办</li>';
@@ -231,7 +245,11 @@ async function loadMonth() {
     const d = parseYmd(key);
     const out = d.getMonth() !== cur.getMonth();
     const es = byDate[key] || [];
-    const pills = es.slice(0, limit).map((e) => `<span class="pill ${e.status === 'done' ? 'done' : ''}" style="--accent:${accent(e.listColor)}">${esc(e.title)}</span>`).join('');
+    const pills = es.slice(0, limit).map((e) => {
+      const note = (e.notes || '').trim();
+      return `<span class="pill ${e.status === 'done' ? 'done' : ''}" style="--accent:${accent(e.listColor)}"
+        data-tip="${esc(e.title)}" data-sub="${esc(`${d.getMonth() + 1}月${d.getDate()}日 · ${e.listName} · ${e.start || '无时间'}${e.status === 'done' ? ' · 已完成' : ''}`)}"${note ? ` data-note="${esc(note)}"` : ''}>${esc(e.title)}</span>`;
+    }).join('');
     const more = es.length > limit ? `<span class="more">+${es.length - limit}</span>` : '';
     const monthTag = out && d.getDate() === 1 ? `<span class="dm">${d.getMonth() + 1}月</span>` : '';
     html += `<div class="mcell ${out ? 'out' : ''} ${key === todayStr ? 'today' : ''}" data-date="${key}">
@@ -398,7 +416,7 @@ function renderSearch(q) {
   $('search-list').innerHTML = list.length ? list.map((e) => `
     <div class="search-item" data-id="${e.id}">
       <span class="d">${e.date.slice(5)}</span>
-      <span class="t">${esc(e.title)}</span>
+      <span class="t" data-tip="${esc(e.title)}" data-sub="${esc(`${e.date} · ${e.listName} · ${e.start || '无时间'}${e.status === 'done' ? ' · 已完成' : ''}`)}"${(e.notes || '').trim() ? ` data-note="${esc(e.notes)}"` : ''}>${esc(e.title)}</span>
       <span style="margin-left:auto;font-size:10px;color:${accent(e.listColor)}">${esc(e.listName)}</span>
     </div>`).join('') : '<div class="search-empty">没有找到</div>';
 }
@@ -433,8 +451,8 @@ function bind() {
     const li = e.target.closest('.task');
     if (li) { const en = await findEntry(li.dataset.id); if (en) openEditor(en); }
   });
-  $('tl-body').addEventListener('click', async (e) => {
-    const ev = e.target.closest('.ev');
+  $('tlh-lanes').addEventListener('click', async (e) => {
+    const ev = e.target.closest('.th');
     if (!ev) return;
     const en = await findEntry(ev.dataset.id);
     if (en) openEditor(en);
@@ -624,6 +642,50 @@ async function refreshChrome() {
   } catch (_) {}
 }
 
+/* ---------------- 悬浮提示：被截断的文字悬停看全文 ---------------- */
+function placeTip(ev) {
+  const t = $('tip');
+  if (!t || !t.classList.contains('on')) return;
+  const r = t.getBoundingClientRect();
+  let x = ev.clientX + 14;
+  let y = ev.clientY + 18;
+  if (x + r.width > window.innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > window.innerHeight - 8) y = ev.clientY - r.height - 12;
+  t.style.left = `${Math.max(8, x)}px`;
+  t.style.top = `${Math.max(8, y)}px`;
+}
+
+function hideTip() {
+  const t = $('tip');
+  if (t) t.classList.remove('on');
+}
+
+function showTipFor(el, ev) {
+  const t = $('tip');
+  if (!t) return;
+  const main = el.getAttribute('data-tip') || '';
+  const note = el.getAttribute('data-note') || '';
+  if (!main) { hideTip(); return; }
+  // 没被截断、也没有备注就不弹，否则每次划过都闪一下
+  if (el.scrollWidth <= el.clientWidth + 1 && !note) { hideTip(); return; }
+  $('tip-t').textContent = main;
+  $('tip-s').textContent = el.getAttribute('data-sub') || '';
+  $('tip-n').textContent = note;
+  t.classList.add('on');
+  placeTip(ev);
+}
+
+document.addEventListener('mouseover', (e) => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) { hideTip(); return; }
+  showTipFor(el, e);
+});
+document.addEventListener('mousemove', (e) => placeTip(e));
+document.addEventListener('scroll', hideTip, true);
+document.addEventListener('click', hideTip, true);
+window.addEventListener('blur', hideTip);
+document.addEventListener('mouseleave', hideTip);
+
 /* ---------------- 启动 ---------------- */
 window.api.onChanged(() => refreshCurrent());
 // 换主题时重画一次：列表色/圆点是按主题算出来的内联样式
@@ -631,7 +693,6 @@ window.api.onTheme((m) => { applyTheme(m); refreshCurrent(); });
 (async () => { applyTheme((await window.api.setting.get('theme')) || 'light'); })();
 setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
 window.addEventListener('focus', () => { checkDateRollover().catch(() => {}); });
-renderHours();
 bind();
 loadToday();
 updateSidebar();

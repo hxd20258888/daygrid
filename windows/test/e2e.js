@@ -207,8 +207,18 @@ async function main() {
   await mainWin.screenshot({ path: path.join(SHOTS, 'debug-main.png') });
   const bodyLen = (await mainWin.evaluate(() => document.body.innerText)).length;
   console.log('主窗口文本长度:', bodyLen);
-  await mainWin.waitForSelector('#view-today .ev, #task-list .task', { timeout: 15000 });
+  await mainWin.waitForSelector('#task-list .task', { timeout: 15000 });
   check('主窗口打开「今天」', (await mainWin.locator('#tb-path').textContent()).includes('今天'));
+  check('时间轴横向排布、在待办上方', await mainWin.evaluate(() => {
+    const tl = document.querySelector('.tl-h').getBoundingClientRect();
+    const row = document.querySelector('.today-row').getBoundingClientRect();
+    const panes = [...document.querySelectorAll('.today-row .pane')].map((el) => el.getBoundingClientRect());
+    const sideBySide = panes.every((p) => Math.abs(p.top - panes[0].top) < 2);
+    const axisLabels = [...document.querySelectorAll('.tlh-axis span')].map((s) => s.textContent);
+    return tl.bottom <= row.top + 2 && sideBySide && panes.length === 3 && axisLabels.length >= 5 && /^\d{2}:00$/.test(axisLabels[0]);
+  }));
+  const bars = await mainWin.locator('.th').count();
+  check('时间条目画成横向时间块', bars >= 1, String(bars));
 
   const geo = await app.evaluate(({ BrowserWindow, screen }) => {
     const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('app.html'));
@@ -229,6 +239,71 @@ async function main() {
 
   const titles = await mainWin.locator('#task-list .tt').allTextContents();
   check('新条目进入今日待办', titles.some((t) => t.includes('和设计对稿')), titles.join(' | '));
+
+  /* 待办 / 已完成 必须一眼能分开 */
+  const taskLook = await mainWin.evaluate(() => {
+    const cs = (el) => (el ? getComputedStyle(el) : null);
+    const plan = document.querySelector('#task-list .task.plan');
+    const done = document.querySelector('#done-list .task.done');
+    return {
+      plan: !!plan,
+      done: !!done,
+      planStrike: plan ? cs(plan.querySelector('.tt')).textDecorationLine : 'none',
+      doneStrike: done ? cs(done.querySelector('.tt')).textDecorationLine : 'none',
+      planBorder: plan ? cs(plan).borderLeftColor : '',
+      doneBorder: done ? cs(done).borderLeftColor : '',
+      doneBg: done ? cs(done).backgroundColor : '',
+    };
+  });
+  check('已完成有勾选样式、待办没有', taskLook.plan && taskLook.done && taskLook.doneStrike.includes('line-through') && !taskLook.planStrike.includes('line-through'), JSON.stringify(taskLook));
+  check('待办与已完成配色不同', taskLook.planBorder !== taskLook.doneBorder && taskLook.doneBg !== 'rgba(0, 0, 0, 0)', `${taskLook.planBorder} / ${taskLook.doneBorder}`);
+
+  /* 悬停看全文 */
+  await mainWin.evaluate(async () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    await window.api.create({ title: '这是一个特别长的标题用来测试悬浮提示能不能显示全部内容', date, start: '15:00', end: '16:00', listId: 'work', notes: '备注：也要能看到' });
+  });
+  await mainWin.waitForTimeout(500);
+  const tip = await mainWin.evaluate(async () => {
+    const el = [...document.querySelectorAll('#task-list .tt')].find((x) => x.textContent.includes('特别长的标题'));
+    if (!el) return { ok: false };
+    const b = el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: b.x + 8, clientY: b.y + 5 }));
+    await new Promise((r) => setTimeout(r, 120));
+    const t = document.getElementById('tip');
+    return {
+      ok: true,
+      truncated: el.scrollWidth > el.clientWidth + 1,
+      on: t.classList.contains('on'),
+      text: document.getElementById('tip-t').textContent,
+      note: document.getElementById('tip-n').textContent,
+      inView: t.getBoundingClientRect().right <= innerWidth && t.getBoundingClientRect().bottom <= innerHeight,
+    };
+  });
+  check('悬停显示完整标题与备注', tip.ok && tip.truncated && tip.on && tip.text.includes('特别长的标题') && tip.note.includes('备注'), JSON.stringify(tip));
+  check('提示不会跑出窗口', tip.ok && tip.inView === true, '');
+  await mainWin.screenshot({ path: path.join(SHOTS, '03b-tooltip.png') });
+  await mainWin.evaluate(() => document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+
+  /* 组件窗口里的长标题同样能看全文 */
+  const wTip = await widget.evaluate(async () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    await window.api.create({ title: '组件里也有一条特别长的标题需要悬浮才能看全文', date, start: '08:00', end: '08:30', listId: 'life' });
+    await new Promise((r) => setTimeout(r, 400));
+    const el = [...document.querySelectorAll('.w-item .ti')].find((x) => x.textContent.includes('特别长'));
+    if (!el) return { ok: false };
+    const b = el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, clientX: b.x + 8, clientY: b.y + 5 }));
+    await new Promise((r) => setTimeout(r, 120));
+    const t = document.getElementById('tip');
+    const r = t.getBoundingClientRect();
+    return { ok: true, on: t.classList.contains('on'), text: document.getElementById('tip-t').textContent, inView: r.left >= 0 && r.right <= innerWidth };
+  });
+  check('组件里悬停也能看全文', wTip.ok && wTip.on && wTip.text.includes('特别长') && wTip.inView, JSON.stringify(wTip));
 
   const posted = await mainWin.locator('#statline').textContent();
   check('统计行显示完成数', /完成\s*\d+\/\d+/.test(posted.replace(/\s+/g, ' ')), posted.replace(/\s+/g, ' ').slice(0, 60));

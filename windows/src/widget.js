@@ -116,7 +116,7 @@ function renderList() {
     <li class="w-item ${e.status === 'done' ? 'done' : ''}" data-id="${e.id}">
       <span class="w-check ${e.status === 'done' ? 'on' : ''}" data-toggle="${e.id}"></span>
       <span class="t">${e.start || '--:--'}</span>
-      <span class="ti">${escapeHtml(e.title)}</span>
+      <span class="ti" data-tip="${escapeHtml(e.title)}" data-sub="${escapeHtml(`${e.start || '无时间'} · ${e.listName || ''}${e.status === 'done' ? ' · 已完成' : ''}`)}">${escapeHtml(e.title)}</span>
       ${dayCache.length > 4 && items.indexOf(e) === 3 ? `<span class="badge">+${dayCache.length - 4}</span>` : ''}
     </li>`).join('');
 }
@@ -287,6 +287,29 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', (e) => {
   if (Date.now() - lastDragAt < 300) { e.stopPropagation(); e.preventDefault(); }
 }, true);
+
+/* ---------------- 悬浮提示：条目标题被截断时看全文 ---------------- */
+function hideTip() {
+  const t = document.getElementById('tip');
+  if (t) t.classList.remove('on');
+}
+document.addEventListener('mouseover', (e) => {
+  const el = e.target.closest('[data-tip]');
+  const t = document.getElementById('tip');
+  if (!el || !t) { hideTip(); return; }
+  if (el.scrollWidth <= el.clientWidth + 1) { hideTip(); return; }
+  document.getElementById('tip-t').textContent = el.getAttribute('data-tip') || '';
+  document.getElementById('tip-s').textContent = el.getAttribute('data-sub') || '';
+  t.classList.add('on');
+  const r = t.getBoundingClientRect();
+  let y = e.clientY + 16;
+  if (y + r.height > window.innerHeight - 6) y = e.clientY - r.height - 10;
+  t.style.left = `${Math.max(6, Math.min(e.clientX + 8, window.innerWidth - r.width - 6))}px`;
+  t.style.top = `${Math.max(6, y)}px`;
+});
+document.addEventListener('mouseleave', hideTip);
+document.addEventListener('wheel', hideTip, true);
+document.addEventListener('click', hideTip, true);
 
 /* 启动时按主进程给的模式渲染（避免先闪一下大卡片） */
 paintMode(new URLSearchParams(location.search).get('mode') === MINI ? MINI : 'expanded');
