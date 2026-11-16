@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, screen, nativeImage, dialog, shell, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, screen, nativeImage, dialog, shell, Notification, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { Store } = require('./db');
@@ -32,6 +32,22 @@ async function startSync() {
   }, 4000);
 }
 
+/*
+ * 组件要一直待在最顶层。
+ * 只有 alwaysOnTop: true 还不够：默认的 'normal' 置顶层会被全屏 / 最大化的程序盖住，
+ * Windows 上 'screen-saver' 是最高的置顶层，能压在普通全屏窗口之上。
+ * 另外别的程序（尤其全屏程序）会重新抢 z 序，所以需要时不时再推一次。
+ */
+function pinWidgetTop() {
+  if (!widgetWin || widgetWin.isDestroyed()) return;
+  // 速记浮层打开时让浮层在上面，别把输入框挡住
+  if (captureWin && !captureWin.isDestroyed() && captureWin.isVisible()) return;
+  widgetWin.setAlwaysOnTop(true, 'screen-saver');
+  if (process.platform !== 'win32') {
+    try { widgetWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch (_) {}
+  }
+}
+
 function createWidget() {
   const { workArea } = screen.getPrimaryDisplay();
   const w = 392;
@@ -55,7 +71,7 @@ function createWidget() {
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: true,
-    alwaysOnTop: false,
+    alwaysOnTop: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -65,7 +81,8 @@ function createWidget() {
     },
   });
   widgetWin.loadFile(path.join(__dirname, 'src', 'widget.html'));
-  widgetWin.once('ready-to-show', () => { widgetWin.show(); broadcastWidgetVisibility(true); });
+  widgetWin.once('ready-to-show', () => { pinWidgetTop(); widgetWin.show(); broadcastWidgetVisibility(true); });
+  widgetWin.on('show', () => pinWidgetTop());
   widgetWin.on('closed', () => { widgetWin = null; });
   widgetWin.on('moved', () => {
     if (!widgetWin) return;
@@ -100,7 +117,10 @@ function createCapture() {
     },
   });
   captureWin.loadFile(path.join(__dirname, 'src', 'capture.html'));
+  // 和组件同属最高置顶层，谁后显示谁在上面：速记浮层不能被组件压住
+  captureWin.setAlwaysOnTop(true, 'screen-saver');
   captureWin.on('blur', () => { if (!isTest && captureWin && captureWin.isVisible()) captureWin.hide(); });
+  captureWin.on('hide', () => { pinWidgetTop(); });
   captureWin.on('closed', () => { captureWin = null; });
   return captureWin;
 }
@@ -143,17 +163,18 @@ function broadcastWidgetVisibility(v) {
 function toggleWidget() {
   if (!widgetWin) {
     createWidget();
-    widgetWin.once('ready-to-show', () => { widgetWin.show(); broadcastWidgetVisibility(true); });
+    widgetWin.once('ready-to-show', () => { pinWidgetTop(); widgetWin.show(); broadcastWidgetVisibility(true); });
     return true;
   }
   const next = !widgetWin.isVisible();
-  if (next) { widgetWin.show(); widgetWin.focus(); } else widgetWin.hide();
+  if (next) { widgetWin.show(); widgetWin.focus(); pinWidgetTop(); } else widgetWin.hide();
   broadcastWidgetVisibility(next);
   return next;
 }
 
 function showCapture(date) {
   if (!captureWin) createCapture();
+  captureWin.setAlwaysOnTop(true, 'screen-saver');
   captureWin.show();
   captureWin.focus();
   captureWin.webContents.send('capture:focus', { date: date || null });
@@ -290,6 +311,12 @@ app.whenReady().then(async () => {
   createWidget();
   createCapture();
   buildTray();
+  // 组件常驻置顶：定期复位置顶层，并记住屏幕/睡眠状态的变化
+  setInterval(pinWidgetTop, 10000);
+  powerMonitor.on('resume', () => { pinWidgetTop(); });
+  screen.on('display-metrics-changed', () => { pinWidgetTop(); });
+  screen.on('display-added', () => { pinWidgetTop(); });
+  screen.on('display-removed', () => { pinWidgetTop(); });
   globalShortcut.register('CommandOrControl+Alt+Space', () => showCapture());
   globalShortcut.register('CommandOrControl+Alt+D', () => toggleWidget());
   await startSync();

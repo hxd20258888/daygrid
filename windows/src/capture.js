@@ -41,19 +41,26 @@ function parse(text, base) {
   };
 
   // 日期
-  const rel = { 今天: 0, 明天: 1, 后天: 2, 大后天: 3 };
+  // 注意顺序：长的先匹配，否则「大后天」会被「后天」抢先吃掉，标题里剩个「大」
+  const rel = { 大后天: 3, 后天: 2, 明天: 1, 今天: 0 };
   let dateSet = false;
   for (const [k, n] of Object.entries(rel)) {
     if (rest.includes(k)) { out.date = addDays(base, n); rest = rest.replace(k, ' '); dateSet = true; break; }
   }
   if (!dateSet) {
-    take(/(下)?周([一二三四五六日天])/, (m) => {
+    take(/(下个?|这个?|本)?周([一二三四五六日天])/, (m) => {
+      // 周一 = 1 … 周日 = 7，和 cur 同一套编号
       const target = '一二三四五六日'.indexOf(m[2] === '天' ? '日' : m[2]) + 1;
       const d = parseYmd(base);
       const cur = (d.getDay() + 6) % 7 + 1;
       let diff = target - cur;
-      if (diff <= 0) diff += 7;
-      if (m[1]) diff += 7;
+      if (/下/.test(m[1] || '')) {
+        // 「下周三」= 本周的周三再往后 7 天；diff 为负时不能先补 7 再 +7，否则会多跳一周
+        diff += 7;
+      } else if (diff < 0) {
+        // 「周三」但本周三已经过了 → 顺延到下一个周三；正好是今天则算今天
+        diff += 7;
+      }
       out.date = addDays(base, diff);
     }) || take(/(\d{1,2})月(\d{1,2})[日号]/, (m) => {
       const d = parseYmd(base);

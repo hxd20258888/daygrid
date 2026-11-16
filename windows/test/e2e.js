@@ -68,6 +68,33 @@ async function main() {
   const firstTitle = await widget.locator('.w-item .ti').first().textContent();
   check('组件显示示例条目', !!firstTitle, firstTitle);
 
+  const topMost = await app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('widget.html'));
+    return !!(w && w.isAlwaysOnTop());
+  });
+  check('组件窗口置顶（压在全屏程序之上）', topMost === true, String(topMost));
+
+  /* 跨天换日：把页面里的 Date 往后拨一天，today / 选中日期都应跟上 */
+  const rollover = await widget.evaluate(async () => {
+    const Real = Date;
+    const SHIFT = 86400000;
+    class Fake extends Real {
+      constructor(...a) { if (a.length) { super(...a); } else { super(Real.now() + SHIFT); } }
+      static now() { return Real.now() + SHIFT; }
+    }
+    const before = today;
+    window.Date = Fake;
+    const changed = await checkDateRollover();
+    const rolled = { before, changed, after: today, selected, cells: [...document.querySelectorAll('.w-cell.today')].map((x) => x.dataset.date) };
+    window.Date = Real;
+    await checkDateRollover();
+    rolled.restored = today === before;
+    return rolled;
+  });
+  check('跨天后「今天」自动更新', rollover.changed === true && rollover.after !== rollover.before, JSON.stringify(rollover));
+  check('跨天后高亮只剩新的一天', rollover.cells.length === 1 && rollover.cells[0] === rollover.after, JSON.stringify(rollover.cells));
+  check('跨天后选中日期跟着走，且能回到今天', rollover.selected === rollover.after && rollover.restored, JSON.stringify(rollover));
+
   await widget.screenshot({ path: path.join(SHOTS, '01-widget.png') });
 
   /* ---------- 2. 到期提醒 ---------- */
@@ -94,6 +121,18 @@ async function main() {
   await capture.waitForTimeout(150);
   const chips = await capture.locator('.chip').allTextContents();
   check('速记解析出日期/时间/标签', chips.some((c) => c.includes('16:00')) && chips.some((c) => c.includes('#工作')), chips.join(' | '));
+
+  /* 周几解析回归：周五（11/13）说的「下周三」是 11/18，周一（11/16）说的才是 11/25 */
+  const dow = await capture.evaluate(() => ({
+    nextWedFromFri: parse('下周三对方案', '2026-11-13').date,
+    nextWedFromMon: parse('下周三对方案', '2026-11-16').date,
+    wedFromFri: parse('周三 对方案', '2026-11-13').date,
+    bigAfter: parse('大后天对方案', '2026-11-16'),
+  }));
+  check('「下周三」按基准日推算，不多跳一周', dow.nextWedFromFri === '2026-11-18', dow.nextWedFromFri);
+  check('周一说「下周三」是 11/25', dow.nextWedFromMon === '2026-11-25', dow.nextWedFromMon);
+  check('「周三」本周已过则顺延', dow.wedFromFri === '2026-11-18', dow.wedFromFri);
+  check('「大后天」不残留「大」', dow.bigAfter.date === '2026-11-19' && !dow.bigAfter.title.includes('大'), `${dow.bigAfter.date} ${dow.bigAfter.title}`);
   await capture.screenshot({ path: path.join(SHOTS, '02-capture.png') });
 
   await capture.press('#cap-input', 'Enter');

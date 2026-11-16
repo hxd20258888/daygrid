@@ -22,9 +22,14 @@ const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate(
 const parseYmd = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
 
-const today = ymd(new Date());
+/*
+ * 组件是常驻进程，不能把“今天”在加载时算一次就冻住：
+ * 跨过零点、或者电脑睡眠唤醒后，today 必须重新计算，否则会一直停在启动那天。
+ */
+const realToday = () => ymd(new Date());
+let today = realToday();
 let selected = today;
-let cursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let cursor = monthStart(new Date());
 let dayCache = [];
 
 function isoWeek(dateStr) {
@@ -116,6 +121,25 @@ async function refresh() {
   await Promise.all([renderGrid(), loadDay()]);
 }
 
+/* 发现日期翻篇：今天高亮跟着走；如果之前停在“今天”，选中日期也一起跟过去 */
+async function checkDateRollover() {
+  const now = realToday();
+  if (now === today) return false;
+  const followToday = (selected === today);
+  today = now;
+  if (followToday) {
+    selected = today;
+    cursor = monthStart(parseYmd(today));
+  }
+  await refresh();
+  return true;
+}
+setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
+window.addEventListener('focus', () => { checkDateRollover().catch(() => {}); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) checkDateRollover().catch(() => {});
+});
+
 document.getElementById('w-grid').addEventListener('click', async (e) => {
   const cell = e.target.closest('.w-cell');
   if (!cell) return;
@@ -145,8 +169,9 @@ document.getElementById('w-list').addEventListener('click', async (e) => {
 document.getElementById('w-add').addEventListener('click', () => window.api.capture(selected));
 document.getElementById('w-menu').addEventListener('click', () => window.api.openMain());
 document.getElementById('w-today').addEventListener('click', async () => {
+  today = realToday();
   selected = today;
-  cursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  cursor = monthStart(parseYmd(today));
   await refresh();
 });
 

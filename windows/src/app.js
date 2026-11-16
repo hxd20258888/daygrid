@@ -18,7 +18,8 @@ const pad = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parseYmd = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
-const todayStr = ymd(new Date());
+// 主窗口会长期开着：「今天」不能是加载时算死的常量，翻日后由 checkDateRollover 更新
+let todayStr = ymd(new Date());
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (id) => document.getElementById(id);
 
@@ -559,6 +560,17 @@ async function refreshCurrent() {
   if (state.view === 'settings') await loadSettings();
 }
 
+/* 日期翻篇后把“今天”对齐：之前停在今天，就跟着走到新的一天 */
+async function checkDateRollover() {
+  const now = ymd(new Date());
+  if (now === todayStr) return false;
+  const followToday = (state.date === todayStr);
+  todayStr = now;
+  if (followToday) state.date = todayStr;
+  await refreshCurrent();
+  return true;
+}
+
 async function loadSync() {
   const s = await window.api.syncStatus();
   const url = $('cloud-url');
@@ -590,6 +602,8 @@ async function refreshChrome() {
 window.api.onChanged(() => refreshCurrent());
 window.api.onTheme((m) => applyTheme(m));
 (async () => { applyTheme((await window.api.setting.get('theme')) || 'light'); })();
+setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
+window.addEventListener('focus', () => { checkDateRollover().catch(() => {}); });
 renderHours();
 bind();
 loadToday();
