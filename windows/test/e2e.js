@@ -207,18 +207,35 @@ async function main() {
   await mainWin.screenshot({ path: path.join(SHOTS, 'debug-main.png') });
   const bodyLen = (await mainWin.evaluate(() => document.body.innerText)).length;
   console.log('主窗口文本长度:', bodyLen);
-  await mainWin.waitForSelector('#task-list .task', { timeout: 15000 });
+  await mainWin.waitForSelector('#task-list .tcard', { timeout: 15000 });
   check('主窗口打开「今天」', (await mainWin.locator('#tb-path').textContent()).includes('今天'));
-  check('时间轴横向排布、在待办上方', await mainWin.evaluate(() => {
-    const tl = document.querySelector('.tl-h').getBoundingClientRect();
-    const row = document.querySelector('.today-row').getBoundingClientRect();
-    const panes = [...document.querySelectorAll('.today-row .pane')].map((el) => el.getBoundingClientRect());
-    const sideBySide = panes.every((p) => Math.abs(p.top - panes[0].top) < 2);
-    const axisLabels = [...document.querySelectorAll('.tlh-axis span')].map((s) => s.textContent);
-    return tl.bottom <= row.top + 2 && sideBySide && panes.length === 3 && axisLabels.length >= 5 && /^\d{2}:00$/.test(axisLabels[0]);
-  }));
-  const bars = await mainWin.locator('.th').count();
-  check('时间条目画成横向时间块', bars >= 1, String(bars));
+
+  /* 卡片式布局：三张概览卡 + 两列待办卡片 + 今日一句 / 已完成 */
+  const layout = await mainWin.evaluate(() => {
+    const kpis = [...document.querySelectorAll('#kpi-row .kpi-card')];
+    const grid = document.getElementById('task-list');
+    const cards = [...grid.querySelectorAll('.tcard')];
+    const ghost = !!grid.querySelector('.ghost-card');
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+    const lefts = [...new Set(cards.map((c) => Math.round(c.getBoundingClientRect().left)))];
+    const foot = document.querySelector('.today-foot');
+    const note = !!document.querySelector('.note-card textarea#daily-summary');
+    const doneCard = !!document.querySelector('.done-card');
+    return {
+      kpis: kpis.length,
+      kpiTexts: kpis.map((k) => k.textContent.replace(/\s+/g, ' ').trim()),
+      cards: cards.length,
+      ghost,
+      cols,
+      columnXs: lefts.length,
+      footBelow: foot.getBoundingClientRect().top >= grid.getBoundingClientRect().bottom - 4,
+      note, doneCard,
+    };
+  });
+  check('顶部三张概览卡', layout.kpis === 3 && layout.kpiTexts.some((t) => t.includes('下一件')) && layout.kpiTexts.some((t) => t.includes('完成')) && layout.kpiTexts.some((t) => t.includes('顺延')), JSON.stringify(layout.kpiTexts));
+  check('待办是两列卡片网格', layout.cols === 2 && layout.columnXs === 2, `cols=${layout.cols} 实际列=${layout.columnXs}`);
+  check('末尾有「＋ 添加一件事」占位卡', layout.ghost === true, '');
+  check('今日一句 / 已完成在下方', layout.footBelow && layout.note && layout.doneCard, JSON.stringify({ footBelow: layout.footBelow, note: layout.note, done: layout.doneCard }));
 
   const geo = await app.evaluate(({ BrowserWindow, screen }) => {
     const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('app.html'));
@@ -243,27 +260,28 @@ async function main() {
   /* 待办 / 已完成 必须一眼能分开 */
   const taskLook = await mainWin.evaluate(() => {
     const cs = (el) => (el ? getComputedStyle(el) : null);
-    const plan = document.querySelector('#task-list .task.plan');
-    const done = document.querySelector('#done-list .task.done');
+    const card = document.querySelector('#task-list .tcard');
+    const cardTitle = card.querySelector('.tt');
+    const doneRow = document.querySelector('#done-list .drow');
     return {
-      plan: !!plan,
-      done: !!done,
-      planStrike: plan ? cs(plan.querySelector('.tt')).textDecorationLine : 'none',
-      doneStrike: done ? cs(done.querySelector('.tt')).textDecorationLine : 'none',
-      planBorder: plan ? cs(plan).borderLeftColor : '',
-      doneBorder: done ? cs(done).borderLeftColor : '',
-      doneBg: done ? cs(done).backgroundColor : '',
+      card: !!card,
+      doneRow: !!doneRow,
+      cardBorder: card ? cs(card).borderLeftColor : '',
+      cardWrap: cardTitle ? cs(cardTitle).webkitLineClamp : '',
+      doneText: doneRow ? doneRow.textContent.trim() : '',
+      doneDot: doneRow ? cs(doneRow.querySelector('.dot')).backgroundColor : '',
+      doneInDoneCard: !!document.querySelector('.done-card #done-list'),
     };
   });
-  check('已完成有勾选样式、待办没有', taskLook.plan && taskLook.done && taskLook.doneStrike.includes('line-through') && !taskLook.planStrike.includes('line-through'), JSON.stringify(taskLook));
-  check('待办与已完成配色不同', taskLook.planBorder !== taskLook.doneBorder && taskLook.doneBg !== 'rgba(0, 0, 0, 0)', `${taskLook.planBorder} / ${taskLook.doneBorder}`);
+  check('待办是卡片、已完成单独一栏', taskLook.card && taskLook.doneRow && taskLook.doneInDoneCard, JSON.stringify(taskLook));
+  check('卡片标题最多两行、左侧带清单色', taskLook.cardWrap === '2' && taskLook.cardBorder !== 'rgba(0, 0, 0, 0)', `${taskLook.cardWrap} ${taskLook.cardBorder}`);
 
   /* 悬停看全文 */
   await mainWin.evaluate(async () => {
     const d = new Date();
     const p = (n) => String(n).padStart(2, '0');
     const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-    await window.api.create({ title: '这是一个特别长的标题用来测试悬浮提示能不能显示全部内容', date, start: '15:00', end: '16:00', listId: 'work', notes: '备注：也要能看到' });
+    await window.api.create({ title: '这是一个特别长的标题用来测试悬浮提示能不能显示全部内容，两行放不下所以必须被截断', date, start: '15:00', end: '16:00', listId: 'work', notes: '备注：也要能看到' });
   });
   await mainWin.waitForTimeout(500);
   const tip = await mainWin.evaluate(async () => {
@@ -275,7 +293,7 @@ async function main() {
     const t = document.getElementById('tip');
     return {
       ok: true,
-      truncated: el.scrollWidth > el.clientWidth + 1,
+      truncated: el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1,
       on: t.classList.contains('on'),
       text: document.getElementById('tip-t').textContent,
       note: document.getElementById('tip-n').textContent,
@@ -305,13 +323,13 @@ async function main() {
   });
   check('组件里悬停也能看全文', wTip.ok && wTip.on && wTip.text.includes('特别长') && wTip.inView, JSON.stringify(wTip));
 
-  const posted = await mainWin.locator('#statline').textContent();
-  check('统计行显示完成数', /完成\s*\d+\/\d+/.test(posted.replace(/\s+/g, ' ')), posted.replace(/\s+/g, ' ').slice(0, 60));
+  const posted = await mainWin.locator('#kpi-row').textContent();
+  check('概览卡显示完成数', /完成\s*\d+\s*\/\s*\d+/.test(posted.replace(/\s+/g, ' ')), posted.replace(/\s+/g, ' ').slice(0, 60));
 
   await mainWin.screenshot({ path: path.join(SHOTS, '03-today.png') });
 
   /* ---------- 4. 勾选完成 ---------- */
-  const target = mainWin.locator('#task-list .task', { hasText: '和设计对稿' }).first();
+  const target = mainWin.locator('#task-list .tcard', { hasText: '和设计对稿' }).first();
   await target.locator('[data-toggle]').click();
   await mainWin.waitForTimeout(500);
   const doneText = await mainWin.locator('#done-list').textContent();

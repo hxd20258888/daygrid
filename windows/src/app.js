@@ -78,89 +78,38 @@ function switchView(v) {
 }
 
 /* ---------------- 今天 ---------------- */
-/* 时间轴的横轴范围：默认 08:00–21:00，有更早/更晚的条目就往外扩 */
-function timeRange(entries) {
-  let from = 8 * 60;
-  let to = 21 * 60;
-  for (const e of entries) {
-    if (!e.start) continue;
-    const s = hhmmToMin(e.start);
-    const en = e.end ? Math.max(hhmmToMin(e.end), s + 20) : s + 40;
-    from = Math.min(from, Math.floor(s / 60) * 60);
-    to = Math.max(to, Math.ceil(en / 60) * 60);
-  }
-  return { from, to: Math.max(to, from + 120) };
-}
-
-/* 横向时间轴：左→右是时间，重叠的条目往下一道排 */
-function renderTimeline(entries) {
-  const lanes = $('tlh-lanes');
-  const axis = $('tlh-axis');
-  const plot = $('tlh-plot');
-  const { from, to } = timeRange(entries);
-  const span = to - from;
-  const now = nowMin();
-  const pct = (min) => Math.max(0, Math.min(100, ((min - from) / span) * 100));
-
-  const items = entries
-    .filter((e) => e.start)
-    .map((e) => {
-      const s = hhmmToMin(e.start);
-      const en = e.end ? Math.max(hhmmToMin(e.end), s + 20) : s + 40;
-      return { e, s, en };
-    })
-    .sort((a, b) => a.s - b.s || a.en - b.en);
-
-  // 半小时的会只有二十来像素，字全被截掉；给每根条一个最小宽度（时间位置仍按真实比例）
-  const plotW = plot.clientWidth || 520;
-  const minSpan = (72 / plotW) * span;
-  for (const it of items) it.visEnd = Math.min(to, Math.max(it.en, it.s + minSpan));
-
-  const laneEnds = [];
-  for (const it of items) {
-    let lane = laneEnds.findIndex((end) => it.s >= end);
-    if (lane < 0) { lane = laneEnds.length; laneEnds.push(it.visEnd); } else laneEnds[lane] = it.visEnd;
-    it.lane = lane;
-  }
-  const laneCount = Math.max(1, laneEnds.length);
-  plot.style.height = `${Math.max(52, Math.min(4, laneCount) * 28)}px`;
-
-  let html = '';
-  for (let h = Math.ceil(from / 60); h * 60 <= to; h++) {
-    html += `<i class="tlh-tick" style="left:${pct(h * 60)}%"></i>`;
-  }
-  for (const it of items) {
-    const done = it.e.status === 'done';
-    const cls = ['th', done ? 'done' : '', !done && now >= it.s && now < it.en ? 'now' : '', it.e.priority >= 2 && !done ? 'p2' : ''].filter(Boolean).join(' ');
-    const sub = `${timeLabel(it.e)} · ${it.e.listName}${done ? ' · 已完成' : ''}`;
-    const note = (it.e.notes || '').trim();
-    html += `<div class="${cls}" data-id="${it.e.id}" style="left:${pct(it.s)}%;width:${Math.max(3.5, pct(it.visEnd) - pct(it.s))}%;top:${it.lane * 28}px"
-      data-tip="${esc(it.e.title)}" data-sub="${esc(sub)}"${note ? ` data-note="${esc(note)}"` : ''}>
-      ${done ? '<span class="th-ck">✓</span>' : ''}<span class="th-t">${esc(it.e.title)}</span>
-    </div>`;
-  }
-  if (now >= from && now <= to) {
-    html += `<div class="nowline-h" style="left:${pct(now)}%"><em>${pad(Math.floor(now / 60))}:${pad(now % 60)}</em></div>`;
-  }
-  if (!items.length) html += '<div class="tlh-empty">今天还没有排时间的条目，双击左边日历或按 N 新建</div>';
-  lanes.innerHTML = html;
-
-  // 刻度：每小时一条；跨度大就两小时一标
-  const stepH = span / 60 > 10 ? 2 : 1;
-  let tickHtml = '';
-  for (let h = Math.ceil(from / 60); h * 60 <= to; h += stepH) {
-    tickHtml += `<span style="left:${pct(h * 60)}%">${pad(h)}:00</span>`;
-  }
-  axis.innerHTML = tickHtml;
-}
-
-function taskHtml(e) {
-  const done = e.status === 'done';
+/* 待办卡片（今天页的两列网格） */
+function tcardHtml(e) {
   const note = (e.notes || '').trim();
-  const sub = `${done ? '已完成 · ' : ''}${e.listName} · ${e.start || '无时间'}${e.end ? '–' + e.end : ''}`;
-  return `<li class="task ${done ? 'done' : 'plan'}" data-id="${e.id}" style="--accent:${accent(e.listColor)}">
-    ${e.priority >= 2 && !done ? '<div class="pri"></div>' : ''}
-    <i class="c ${done ? 'done' : ''}" data-toggle="${e.id}"></i>
+  const sub = `${e.listName} · ${e.start || '无时间'}${e.end ? '–' + e.end : ''}`;
+  const tip = ` data-tip="${esc(e.title)}" data-sub="${esc(sub)}"` + (note ? ` data-note="${esc(note)}"` : "");
+  return `<li class="tcard" data-id="${e.id}" style="--accent:${accent(e.listColor)}">
+    <i class="c" data-toggle="${e.id}"></i>
+    <div class="tx">
+      <div class="tt"${tip}>${esc(e.title)}</div>
+      <div class="tm"><i style="background:${accent(e.listColor)}"></i>${esc(e.listName)} · ${e.start || '无时间'}${e.priority >= 2 ? '<span class="tag">高</span>' : ''}</div>
+    </div>
+  </li>`;
+}
+
+/* 已完成卡片里的一行：点圆点可以取消完成，点标题打开编辑 */
+function doneRowHtml(e) {
+  const note = (e.notes || '').trim();
+  const sub = `${e.listName} · ${e.start || '无时间'} · 已完成`;
+  const tip = ` data-tip="${esc(e.title)}" data-sub="${esc(sub)}"` + (note ? ` data-note="${esc(note)}"` : "");
+  return `<li class="drow" data-id="${e.id}">
+    <i class="dot" data-toggle="${e.id}" title="点一下取消完成"></i>
+    <span class="dt"${tip}>${esc(e.title)}</span>
+    <span class="dw">${e.start || ''}</span>
+  </li>`;
+}
+
+/* 复盘页的顺延列表还用行式 */
+function taskHtml(e) {
+  const note = (e.notes || '').trim();
+  const sub = `${e.listName} · ${e.start || '无时间'}`;
+  return `<li class="task" data-id="${e.id}" style="--accent:${accent(e.listColor)}">
+    <i class="c" data-toggle="${e.id}"></i>
     <div class="tx">
       <div class="tt" data-tip="${esc(e.title)}" data-sub="${esc(sub)}"${note ? ` data-note="${esc(note)}"` : ''}>${esc(e.title)}</div>
       <div class="tm"><i style="background:${accent(e.listColor)}"></i>${esc(e.listName)} · ${e.start || '无时间'}</div>
@@ -179,16 +128,31 @@ async function loadToday() {
   const open = entries.filter((e) => e.status !== 'done');
   const postponed = entries.reduce((a, e) => a + e.postponed, 0);
   const next = entries.filter((e) => e.start && e.status !== 'done').sort((a, b) => a.start.localeCompare(b.start))[0];
-  const nextText = next ? `下一件：${next.start} ${next.title}` : '今天没有排时间的了';
-  $('statline').innerHTML = `
-    <span>完成 <b>${done.length}</b>/${entries.length}</span>
-    <span class="bar"><i style="width:${entries.length ? Math.round((done.length / entries.length) * 100) : 0}%"></i></span>
-    <span class="sep"></span><span>顺延 <b class="${postponed ? 'up' : ''}">${postponed}</b></span>
-    <span class="sep"></span><span class="next"${next ? ` data-tip="${esc(nextText)}"` : ''}>${esc(nextText)}</span>`;
+  const rate = entries.length ? Math.round((done.length / entries.length) * 100) : 0;
 
-  renderTimeline(entries);
-  $('task-list').innerHTML = open.length ? open.map(taskHtml).join('') : '<li class="empty">今天还没有待办</li>';
-  $('done-list').innerHTML = done.length ? done.map(taskHtml).join('') : '<li class="empty">还没有完成的事</li>';
+  $('kpi-row').innerHTML = `
+    <div class="kpi-card next">
+      <div class="k">下一件</div>
+      <div class="v">${next
+    ? `${next.start} <em${` data-tip="${esc(next.title)}" data-sub="${esc(`${next.start} · ${next.listName}`)}"`}>${esc(next.title)}</em>`
+    : '<em>今天没有排时间的了</em>'}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="k">今天完成</div>
+      <div class="v">${done.length} <em>/ ${entries.length} 件</em></div>
+      <div class="track"><i style="width:${rate}%"></i></div>
+    </div>
+    <div class="kpi-card">
+      <div class="k">顺延</div>
+      <div class="v" style="color:${postponed ? 'var(--amber)' : 'inherit'}">${postponed} <em>次</em></div>
+      <div class="k" style="margin-top:5px">第 ${isoWeek(date)} 周</div>
+    </div>`;
+
+  $('task-list').innerHTML = (open.length
+    ? open.map(tcardHtml).join('')
+    : '<li class="todo-empty">今天还没有待办，点下面的「＋ 添加一件事」或按 N 新建</li>')
+    + '<li class="ghost-card" id="btn-add-card">＋ 添加一件事</li>';
+  $('done-list').innerHTML = done.length ? done.map(doneRowHtml).join('') : '<li class="done-empty">还没有完成的事</li>';
   $('task-count').textContent = `${open.length} 件`;
   $('done-count').textContent = `${done.length} 件`;
 
@@ -440,22 +404,17 @@ function bind() {
   $('today-title').addEventListener('click', async () => { state.date = todayStr; await loadToday(); });
 
   $('task-list').addEventListener('click', async (e) => {
+    if (e.target.closest('#btn-add-card')) { openEditor(null); return; }
     const t = e.target.closest('[data-toggle]');
     if (t) { await window.api.toggle(t.dataset.toggle); await refreshCurrent(); return; }
-    const li = e.target.closest('.task');
+    const li = e.target.closest('.tcard');
     if (li) { const en = await findEntry(li.dataset.id); if (en) openEditor(en); }
   });
   $('done-list').addEventListener('click', async (e) => {
     const t = e.target.closest('[data-toggle]');
     if (t) { await window.api.toggle(t.dataset.toggle); await refreshCurrent(); return; }
-    const li = e.target.closest('.task');
+    const li = e.target.closest('.drow');
     if (li) { const en = await findEntry(li.dataset.id); if (en) openEditor(en); }
-  });
-  $('tlh-lanes').addEventListener('click', async (e) => {
-    const ev = e.target.closest('.th');
-    if (!ev) return;
-    const en = await findEntry(ev.dataset.id);
-    if (en) openEditor(en);
   });
 
   $('month-prev').addEventListener('click', () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1); loadMonth(); });
@@ -666,8 +625,9 @@ function showTipFor(el, ev) {
   const main = el.getAttribute('data-tip') || '';
   const note = el.getAttribute('data-note') || '';
   if (!main) { hideTip(); return; }
-  // 没被截断、也没有备注就不弹，否则每次划过都闪一下
-  if (el.scrollWidth <= el.clientWidth + 1 && !note) { hideTip(); return; }
+  // 被横着截断（省略号）或竖着截断（两行 clamp）都要弹；两者都没有就不弹
+  const cut = el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+  if (!cut && !note) { hideTip(); return; }
   $('tip-t').textContent = main;
   $('tip-s').textContent = el.getAttribute('data-sub') || '';
   $('tip-n').textContent = note;

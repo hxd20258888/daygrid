@@ -49,34 +49,26 @@
             <button class="btn primary" id="btn-new">＋ 新建</button>
           </div>
         </div>
-        <div class="statline" id="statline"></div>
-        <div class="today-stack">
-          <div class="tl-h" id="timeline">
-            <div class="tlh-plot" id="tlh-plot">
-              <div class="tlh-lanes" id="tlh-lanes"></div>
+        <div class="kpi-row" id="kpi-row"></div>
+        <div class="todo-wrap">
+          <div class="todo-head"><b>今日待办</b><span id="task-count">0 件</span></div>
+          <ul class="todo-grid" id="task-list"></ul>
+        </div>
+        <div class="today-foot">
+          <div class="note-card">
+            <div class="nc-head"><b>今日一句</b><span id="log-hint">写点什么</span></div>
+            <textarea id="daily-summary" placeholder="今天做成了什么？明天最重要的一件事？" maxlength="300"></textarea>
+            <div class="moods" id="moods">
+              <button class="mood" data-mood="1">🙂</button>
+              <button class="mood" data-mood="2">😐</button>
+              <button class="mood" data-mood="3">😴</button>
+              <button class="mood" data-mood="4">🔥</button>
+              <button class="mood" data-mood="5">🌧</button>
             </div>
-            <div class="tlh-axis" id="tlh-axis"></div>
           </div>
-          <div class="today-row">
-            <div class="pane">
-              <div class="panel-h"><b>今日待办</b><span id="task-count">0 件</span></div>
-              <ul class="tasklist" id="task-list"></ul>
-            </div>
-            <div class="pane">
-              <div class="panel-h"><b>已完成</b><span id="done-count">0 件</span></div>
-              <ul class="tasklist" id="done-list"></ul>
-            </div>
-            <div class="pane reflect">
-              <div class="lb"><span>今日一句</span><span id="log-hint">写点什么</span></div>
-              <textarea id="daily-summary" placeholder="今天做成了什么？明天最重要的一件事？" maxlength="300"></textarea>
-              <div class="moods" id="moods">
-                <button class="mood" data-mood="1">🙂</button>
-                <button class="mood" data-mood="2">😐</button>
-                <button class="mood" data-mood="3">😴</button>
-                <button class="mood" data-mood="4">🔥</button>
-                <button class="mood" data-mood="5">🌧</button>
-              </div>
-            </div>
+          <div class="done-card">
+            <div class="dc-head"><b>已完成</b><span id="done-count">0 件</span></div>
+            <ul class="done-list" id="done-list"></ul>
           </div>
         </div>
       </section>
