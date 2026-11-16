@@ -21,6 +21,7 @@ let mainWin = null;
 let tray = null;
 let quitting = false;
 let syncClient = null;
+let dragOrigin = null;
 
 async function startSync() {
   syncClient = new SyncClient(store);
@@ -48,21 +49,64 @@ function pinWidgetTop() {
   }
 }
 
+const WIDGET_SIZE = { width: 392, height: 568 };
+const MINI_SIZE = { width: 180, height: 60 };
+
+function widgetMode() {
+  return store && store.setting('widgetMode') === 'mini' ? 'mini' : 'expanded';
+}
+
+/* 别把组件拖出屏幕：整体夹进当前显示器的工作区 */
+function clampBounds(b) {
+  const { workArea } = screen.getDisplayMatching(b);
+  return {
+    ...b,
+    x: Math.min(Math.max(b.x, workArea.x), workArea.x + workArea.width - b.width),
+    y: Math.min(Math.max(b.y, workArea.y), workArea.y + workArea.height - b.height),
+  };
+}
+
+function saveWidgetPos(b) {
+  const prefix = widgetMode() === 'mini' ? 'mini' : 'widget';
+  store.setSetting(prefix + 'X', b.x);
+  store.setSetting(prefix + 'Y', b.y);
+}
+
+/* 展开 ↔ 收起：以右上角为锚点换尺寸，位置跟手、不跑偏 */
+function applyWidgetMode(mode) {
+  if (!widgetWin || widgetWin.isDestroyed()) return false;
+  const next = mode === 'mini' ? 'mini' : 'expanded';
+  const size = next === 'mini' ? MINI_SIZE : WIDGET_SIZE;
+  store.setSetting('widgetMode', next);
+  const b = widgetWin.getBounds();
+  const bounds = clampBounds({ ...size, x: b.x + b.width - size.width, y: b.y });
+  widgetWin.setBounds(bounds);
+  saveWidgetPos(bounds);
+  const sendMode = () => {
+    if (widgetWin && !widgetWin.isDestroyed()) widgetWin.webContents.send('widget:mode', next);
+  };
+  if (widgetWin.webContents.isLoading()) widgetWin.webContents.once('did-finish-load', sendMode);
+  else sendMode();
+  pinWidgetTop();
+  return true;
+}
+
 function createWidget() {
   const { workArea } = screen.getPrimaryDisplay();
-  const w = 392;
-  const h = 568;
-  let x = workArea.x + workArea.width - w - 24;
+  const mode = widgetMode();
+  const size = mode === 'mini' ? MINI_SIZE : WIDGET_SIZE;
+  const sx = store.setting((mode === 'mini' ? 'mini' : 'widget') + 'X');
+  const sy = store.setting((mode === 'mini' ? 'mini' : 'widget') + 'Y');
+  let x = workArea.x + workArea.width - size.width - 24;
   let y = workArea.y + 64;
-  const sx = store.setting('widgetX');
-  const sy = store.setting('widgetY');
   if (sx && sy) { x = Number(sx); y = Number(sy); }
+  const bounds = clampBounds({ ...size, x, y });
 
   widgetWin = new BrowserWindow({
-    width: w,
-    height: h,
-    x,
-    y,
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -80,15 +124,14 @@ function createWidget() {
       backgroundThrottling: false,
     },
   });
-  widgetWin.loadFile(path.join(__dirname, 'src', 'widget.html'));
+  widgetWin.loadFile(path.join(__dirname, 'src', 'widget.html'), { query: { mode } });
   widgetWin.once('ready-to-show', () => { pinWidgetTop(); widgetWin.show(); broadcastWidgetVisibility(true); });
   widgetWin.on('show', () => pinWidgetTop());
   widgetWin.on('closed', () => { widgetWin = null; });
   widgetWin.on('moved', () => {
     if (!widgetWin) return;
-    const [wx, wy] = widgetWin.getPosition();
-    store.setSetting('widgetX', wx);
-    store.setSetting('widgetY', wy);
+    if (dragOrigin) return; // 拖动过程中不落盘，松手时统一保存
+    saveWidgetPos(widgetWin.getBounds());
   });
   return widgetWin;
 }
@@ -236,6 +279,14 @@ function buildTray() {
     { label: '打开日格', click: () => createMain() },
     { label: '速记  Ctrl+Alt+Space', click: () => showCapture() },
     { label: '显示 / 隐藏桌面组件', click: () => toggleWidget() },
+    {
+      label: '组件：展开 / 收起成小图标',
+      click: () => {
+        if (!widgetWin) { createWidget(); return; }
+        if (!widgetWin.isVisible()) { widgetWin.show(); broadcastWidgetVisibility(true); }
+        applyWidgetMode(widgetMode() === 'mini' ? 'expanded' : 'mini');
+      },
+    },
     { type: 'separator' },
     {
       label: '开机自启',
@@ -293,6 +344,26 @@ function registerIpc() {
   ipcMain.handle('win:hideWidget', () => { if (widgetWin) { widgetWin.hide(); broadcastWidgetVisibility(false); } });
   ipcMain.handle('win:toggleWidget', () => toggleWidget());
   ipcMain.handle('win:widgetVisible', () => (widgetWin ? widgetWin.isVisible() : false));
+  ipcMain.handle('win:widgetMode', () => widgetMode());
+  ipcMain.handle('win:setWidgetMode', (_e, mode) => applyWidgetMode(mode));
+  // 拖动：渲染进程只报位移，主进程用起点算绝对位置，避免累计误差
+  ipcMain.on('widget:drag', (_e, msg) => {
+    if (!widgetWin || widgetWin.isDestroyed() || !msg) return;
+    if (msg.phase === 'start') {
+      const [x, y] = widgetWin.getPosition();
+      dragOrigin = { x, y };
+      return;
+    }
+    if (msg.phase === 'move' && dragOrigin) {
+      widgetWin.setPosition(Math.round(dragOrigin.x + (msg.dx || 0)), Math.round(dragOrigin.y + (msg.dy || 0)));
+      return;
+    }
+    if (msg.phase === 'end') {
+      const b = widgetWin.getBounds();
+      dragOrigin = null;
+      saveWidgetPos(b);
+    }
+  });
   ipcMain.handle('theme:set', (_e, mode) => {
     store.setSetting('theme', mode);
     for (const w of BrowserWindow.getAllWindows()) {

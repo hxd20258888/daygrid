@@ -8,10 +8,11 @@
 </head>
 <body>
 <div class="widget" id="widget">
-  <header class="w-head drag">
+  <header class="w-head">
     <div class="w-title"><span id="w-month">2026 年 11 月</span><em id="w-week"></em></div>
-    <div class="w-actions no-drag">
+    <div class="w-actions">
       <button id="w-today" title="回到今天">今天</button>
+      <button id="w-fold" title="收起成小图标">–</button>
       <button id="w-menu" title="打开完整窗口">···</button>
     </div>
   </header>
@@ -30,6 +31,13 @@
   </div>
   <ul class="w-list" id="w-list"></ul>
   <button class="w-add" id="w-add">+ 添加今天的事</button>
+</div>
+
+<div class="w-mini" id="w-mini" title="按住可以拖动，点右侧展开日历">
+  <b id="w-mini-day">16</b>
+  <em id="w-mini-wd">周一</em>
+  <span class="w-mini-dots" id="w-mini-dots"></span>
+  <button class="w-mini-open" id="w-mini-open" title="展开日历">›</button>
 </div>
 <script src="widget.js"></script>
 </body>

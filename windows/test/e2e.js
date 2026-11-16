@@ -97,6 +97,50 @@ async function main() {
 
   await widget.screenshot({ path: path.join(SHOTS, '01-widget.png') });
 
+  /* ---------- 1.5 拖动 + 收起成小图标 / 展开 ---------- */
+  const wbounds = () => app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('widget.html'));
+    return w ? w.getBounds() : null;
+  });
+  const bBefore = await wbounds();
+  await widget.evaluate(async () => {
+    const el = document.querySelectorAll('.w-cell')[10];
+    const r = el.getBoundingClientRect();
+    const base = { bubbles: true, cancelable: true, button: 0, clientX: r.x + 8, clientY: r.y + 8 };
+    el.dispatchEvent(new MouseEvent('mousedown', { ...base, screenX: 800, screenY: 500 }));
+    for (let i = 1; i <= 6; i++) {
+      window.dispatchEvent(new MouseEvent('mousemove', { ...base, screenX: 800 - i * 15, screenY: 500 + i * 10 }));
+    }
+    window.dispatchEvent(new MouseEvent('mouseup', { ...base, screenX: 710, screenY: 560 }));
+    await new Promise((res) => setTimeout(res, 250));
+  });
+  const bAfter = await wbounds();
+  check('从日历区域就能拖动窗口', Math.abs((bAfter.x - bBefore.x) + 90) <= 6 && Math.abs((bAfter.y - bBefore.y) - 60) <= 6, `${bAfter.x - bBefore.x}, ${bAfter.y - bBefore.y}`);
+  check('拖动不误触日期选中', /今天/.test(await widget.locator('#w-day-label').textContent()));
+
+  await widget.click('#w-fold');
+  await widget.waitForTimeout(700);
+  const bMini = await wbounds();
+  check('收起成小图标（窗口变小）', bMini.width <= 200 && bMini.height <= 75 && bMini.width < bBefore.width / 2, `${bMini.width}x${bMini.height}`);
+  check('收起后只剩图标', await widget.evaluate(() => {
+    const mini = document.querySelector('.w-mini');
+    const card = document.getElementById('widget');
+    return getComputedStyle(mini).display !== 'none' && getComputedStyle(card).display === 'none';
+  }));
+  check('图标上是今天的日期', (await widget.locator('#w-mini-day').textContent()).trim() === String(new Date().getDate()));
+  await widget.screenshot({ path: path.join(SHOTS, '01b-widget-mini.png') });
+
+  await widget.click('#w-mini-open');
+  await widget.waitForTimeout(700);
+  const bBack = await wbounds();
+  check('再展开回日历', Math.abs(bBack.width - 392) <= 4 && Math.abs(bBack.height - 568) <= 4, `${bBack.width}x${bBack.height}`);
+
+  await widget.locator('.w-cell').nth(20).click();
+  await widget.waitForTimeout(250);
+  check('拖动后点选日期仍然有效', !/今天/.test(await widget.locator('#w-day-label').textContent()));
+  await widget.click('#w-today');
+  await widget.waitForTimeout(250);
+
   /* ---------- 2. 到期提醒 ---------- */
   const fired = await widget.evaluate(async () => {
     const d = new Date();

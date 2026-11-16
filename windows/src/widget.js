@@ -132,6 +132,7 @@ async function checkDateRollover() {
     cursor = monthStart(parseYmd(today));
   }
   await refresh();
+  if (isMini()) renderMini();
   return true;
 }
 setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
@@ -191,5 +192,86 @@ document.getElementById('rb-done').addEventListener('click', async () => {
   await refresh();
 });
 
-window.api.onChanged(() => refresh());
+window.api.onChanged(() => { refresh(); if (isMini()) renderMini(); });
+
+/* ---------------- 收起成小图标 / 展开 ---------------- */
+const MINI = 'mini';
+function isMini() { return document.body.classList.contains('collapsed'); }
+
+async function renderMini() {
+  const d = parseYmd(today);
+  document.getElementById('w-mini-day').textContent = d.getDate();
+  document.getElementById('w-mini-wd').textContent = '周' + WD[d.getDay()];
+  const dots = document.getElementById('w-mini-dots');
+  try {
+    const c = await window.api.counts(today, today);
+    const lists = ((c && c[today]) || {}).lists || [];
+    dots.innerHTML = lists.slice(0, 3).map((id) => `<i style="background:${COLORS[id] || '#9AA39F'}"></i>`).join('');
+  } catch (_) {
+    dots.innerHTML = '';
+  }
+}
+
+function paintMode(mode) {
+  document.body.classList.toggle('collapsed', mode === MINI);
+  if (mode === MINI) renderMini();
+}
+
+async function setMode(mode) {
+  paintMode(mode);
+  await window.api.setWidgetMode(mode);
+  if (mode !== MINI) await refresh();
+}
+
+document.getElementById('w-fold').addEventListener('click', () => setMode(MINI));
+document.getElementById('w-mini-open').addEventListener('click', () => setMode('expanded'));
+window.api.onWidgetMode((m) => { if (m) paintMode(m); });
+
+/* ---------------- 拖动：整张卡片（含小图标）任意位置按住就能拖 ---------------- */
+let dragState = null;
+let suppressClick = false;
+let lastDragAt = 0;
+
+document.addEventListener('mousedown', (e) => {
+  suppressClick = false;
+  if (e.button !== 0) return;
+  if (e.target.closest('button, input, textarea, select, a')) return; // 这些自己处理点击
+  dragState = { x: e.screenX, y: e.screenY, moved: false };
+  window.api.widgetDrag({ phase: 'start' });
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!dragState) return;
+  const dx = e.screenX - dragState.x;
+  const dy = e.screenY - dragState.y;
+  if (!dragState.moved && Math.abs(dx) + Math.abs(dy) < 4) return; // 小抖动不算拖动，保证点击有效
+  dragState.moved = true;
+  window.api.widgetDrag({ phase: 'move', dx, dy });
+});
+
+function endDrag() {
+  if (!dragState) return;
+  if (dragState.moved) {
+    suppressClick = true;
+    lastDragAt = Date.now();
+    window.api.widgetDrag({ phase: 'end' });
+  }
+  dragState = null;
+}
+window.addEventListener('mouseup', endDrag);
+document.addEventListener('mouseleave', endDrag);
+
+/* 拖动结束后紧跟的那次 click / dblclick 不能当成点选 */
+document.addEventListener('click', (e) => {
+  if (!suppressClick) return;
+  suppressClick = false;
+  e.stopPropagation();
+  e.preventDefault();
+}, true);
+document.addEventListener('dblclick', (e) => {
+  if (Date.now() - lastDragAt < 300) { e.stopPropagation(); e.preventDefault(); }
+}, true);
+
+/* 启动时按主进程给的模式渲染（避免先闪一下大卡片） */
+paintMode(new URLSearchParams(location.search).get('mode') === MINI ? MINI : 'expanded');
 refresh();

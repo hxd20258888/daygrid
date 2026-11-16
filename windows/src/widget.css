@@ -29,8 +29,6 @@ body{
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button:focus-visible{outline:2px solid #9FC6C0;outline-offset:2px}
 ::selection{background:#CFE3DE}
-.drag{-webkit-app-region:drag}
-.no-drag{-webkit-app-region:no-drag}
 input,textarea{font:inherit;color:inherit;user-select:text}
 
 /* ---------- 桌面组件 ---------- */
@@ -95,6 +93,30 @@ input,textarea{font:inherit;color:inherit;user-select:text}
 .w-add{margin-top:8px;width:100%;padding:7px 0;border:1px dashed #D2DBD7;border-radius:9px;color:var(--ink2);font-size:12px;background:rgba(255,255,255,.4)}
 .w-add:hover{border-color:var(--teal2);color:var(--teal2);background:#F4F9F7}
 
+/* ---------- 收起后的小图标（窗口只有 180×60） ---------- */
+.w-mini{
+  display:none;align-items:center;gap:7px;
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:164px;height:44px;padding:0 5px 0 14px;
+  background:rgba(252,252,249,.95);
+  border:1px solid rgba(255,255,255,.9);
+  border-radius:22px;
+  box-shadow:0 10px 26px rgba(28,48,43,.22), 0 2px 6px rgba(28,48,43,.1);
+  cursor:grab;
+}
+.w-mini:active{cursor:grabbing}
+.w-mini b{font-size:17px;font-weight:700;color:var(--teal);letter-spacing:.3px;font-variant-numeric:tabular-nums}
+.w-mini em{font-style:normal;font-size:10.5px;color:var(--ink3)}
+.w-mini-dots{display:flex;gap:3px;margin-left:1px;flex:1}
+.w-mini-dots i{width:4px;height:4px;border-radius:50%;display:block}
+.w-mini-open{
+  margin-left:auto;width:30px;height:32px;border-radius:16px;
+  display:grid;place-items:center;font-size:16px;line-height:1;color:var(--ink2);
+}
+.w-mini-open:hover{background:var(--teal-soft);color:var(--teal)}
+body.collapsed .widget{display:none}
+body.collapsed .w-mini{display:flex}
+
 /* ==================== 深色主题 ==================== */
 body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#AAB4AF;--ink3:#7E8884;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
 body[data-theme="dark"] .widget{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 18px 44px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
@@ -125,6 +147,11 @@ body[data-theme="dark"] .reminder-bar .rb-tx b{color:#E8C4A4}
 body[data-theme="dark"] .reminder-bar .rb-tx small{color:#B98F6C}
 body[data-theme="dark"] .reminder-bar button{color:#D8A374}
 body[data-theme="dark"] .reminder-bar button:hover{background:#3F2E22}
+body[data-theme="dark"] .w-mini{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 10px 26px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
+body[data-theme="dark"] .w-mini b{color:#9FC6C0}
+body[data-theme="dark"] .w-mini em{color:#7E8884}
+body[data-theme="dark"] .w-mini-open{color:#AAB4AF}
+body[data-theme="dark"] .w-mini-open:hover{background:#22332F;color:#9FC6C0}
 
 /* ==================== 透明主题（组件透出壁纸） ==================== */
 body[data-transparent="1"] .widget{
@@ -135,3 +162,4 @@ body[data-transparent="1"] .widget{
 body[data-transparent="1"] .w-cell:hover{background:rgba(255,255,255,.45)}
 body[data-transparent="1"] .w-item:hover{background:rgba(255,255,255,.45)}
 body[data-transparent="1"] .w-add{background:rgba(255,255,255,.35)}
+body[data-transparent="1"] .w-mini{background:rgba(252,252,249,.68);border-color:rgba(255,255,255,.55)}
