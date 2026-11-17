@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
   update: (id, patch) => ipcRenderer.invoke('entry:update', { id, patch }),
   toggle: (id) => ipcRenderer.invoke('entry:toggle', id),
   remove: (id) => ipcRenderer.invoke('entry:remove', id),
+  removeConfirm: (id, title) => ipcRenderer.invoke('entry:removeConfirm', { id, title }),
+  getEntry: (id) => ipcRenderer.invoke('entry:get', id),
   log: {
     get: (date) => ipcRenderer.invoke('log:get', date),
     set: (date, patch) => ipcRenderer.invoke('log:set', { date, ...patch }),
@@ -28,6 +30,8 @@ contextBridge.exposeInMainWorld('api', {
     openDir: () => ipcRenderer.invoke('data:openDir'),
   },
   openMain: () => ipcRenderer.invoke('win:openMain'),
+  openEditor: (id) => ipcRenderer.invoke('win:openEditor', id),
+  onEditRequest: (cb) => ipcRenderer.on('entry:edit', (_e, id) => cb(id)),
   capture: (date) => ipcRenderer.invoke('win:capture', date),
   closeCapture: () => ipcRenderer.invoke('win:closeCapture'),
   minimize: () => ipcRenderer.invoke('win:minimize'),

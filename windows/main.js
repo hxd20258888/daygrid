@@ -311,6 +311,25 @@ function registerIpc() {
   ipcMain.handle('entry:create', (_e, input) => { const r = store.create(input); broadcast(); return r; });
   ipcMain.handle('entry:update', (_e, { id, patch }) => { const r = store.update(id, patch); broadcast(); return r; });
   ipcMain.handle('entry:toggle', (_e, id) => { const r = store.toggle(id); broadcast(); return r; });
+  ipcMain.handle('entry:get', (_e, id) => store.byId(id));
+  ipcMain.handle('entry:removeConfirm', async (_e, { id, title }) => {
+    // 测试里不弹原生对话框，直接删
+    if (!isTest) {
+      const { response } = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['删除', '取消'],
+        defaultId: 1,
+        cancelId: 1,
+        title: '删除条目',
+        message: '删除这个条目？',
+        detail: (title || '').slice(0, 120),
+      });
+      if (response !== 0) return false;
+    }
+    store.remove(id);
+    broadcast();
+    return true;
+  });
   ipcMain.handle('entry:remove', (_e, id) => { store.remove(id); broadcast(); return true; });
   ipcMain.handle('log:get', (_e, date) => store.getLog(date));
   ipcMain.handle('log:range', (_e, { from, to }) => store.logsRange(from, to));
@@ -336,6 +355,16 @@ function registerIpc() {
   ipcMain.handle('data:openDir', () => shell.openPath(dataDir));
 
   ipcMain.handle('win:openMain', () => { createMain(); return true; });
+  // 从桌面组件里「修改」某条：打开主窗口并弹出它的编辑框
+  ipcMain.handle('win:openEditor', (_e, id) => {
+    const win = createMain();
+    const send = () => { if (win && !win.isDestroyed()) win.webContents.send('entry:edit', id); };
+    if (win.webContents.isLoading()) win.webContents.once('did-finish-load', send);
+    else send();
+    win.show();
+    win.focus();
+    return true;
+  });
   ipcMain.handle('win:capture', (_e, date) => { showCapture(date); return true; });
   ipcMain.handle('win:closeCapture', () => { if (captureWin) captureWin.hide(); return true; });
   ipcMain.handle('win:minimize', () => { if (mainWin) mainWin.minimize(); });

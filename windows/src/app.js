@@ -416,6 +416,17 @@ function bind() {
     const li = e.target.closest('.drow');
     if (li) { const en = await findEntry(li.dataset.id); if (en) openEditor(en); }
   });
+  // 右键：修改 / 完成 / 删除
+  const onEntryCtx = async (e) => {
+    const node = e.target.closest('.tcard, .drow');
+    if (!node) return;
+    e.preventDefault();
+    const entry = await entryById(node.dataset.id);
+    if (entry) entryMenu(e.clientX, e.clientY, entry);
+  };
+  $('task-list').addEventListener('contextmenu', onEntryCtx);
+  $('done-list').addEventListener('contextmenu', onEntryCtx);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCtx(); });
 
   $('month-prev').addEventListener('click', () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1); loadMonth(); });
   $('month-next').addEventListener('click', () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1); loadMonth(); });
@@ -539,7 +550,7 @@ async function findEntry(id) {
   if (e) return e;
   const d = state.date;
   const list = await window.api.range(d, d);
-  return list.find((x) => x.id === id) || null;
+  return list.find((x) => x.id === id) || (await window.api.getEntry(id)) || null;
 }
 
 async function pickSearch(id) {
@@ -601,6 +612,44 @@ async function refreshChrome() {
   } catch (_) {}
 }
 
+/* ---------------- 右键菜单：修改 / 完成 / 删除 ---------------- */
+function closeCtx() {
+  const el = $('ctx');
+  if (el) { el.hidden = true; el.innerHTML = ''; }
+}
+
+function openCtx(x, y, items) {
+  const el = $('ctx');
+  el.innerHTML = items.map((it, i) => (it.sep
+    ? '<div class="sep"></div>'
+    : `<button data-i="${i}"${it.danger ? ' class="danger"' : ''}>${it.label}</button>`)).join('');
+  el.hidden = false;
+  const r = el.getBoundingClientRect();
+  el.style.left = `${Math.max(8, Math.min(x, window.innerWidth - r.width - 8))}px`;
+  el.style.top = `${Math.max(8, Math.min(y, window.innerHeight - r.height - 8))}px`;
+  el.onclick = async (ev) => {
+    const b = ev.target.closest('button[data-i]');
+    if (!b) return;
+    const item = items[Number(b.dataset.i)];
+    closeCtx();
+    if (item && item.act) await item.act();
+  };
+}
+
+function entryMenu(x, y, entry) {
+  const done = entry.status === 'done';
+  openCtx(x, y, [
+    { label: '修改…', act: () => openEditor(entry) },
+    { label: done ? '取消完成' : '标记完成', act: async () => { await window.api.toggle(entry.id); await refreshCurrent(); } },
+    { sep: true },
+    { label: '删除', danger: true, act: async () => { if (await window.api.removeConfirm(entry.id, entry.title)) await refreshCurrent(); } },
+  ]);
+}
+
+async function entryById(id) {
+  return state.entries.find((x) => x.id === id) || (await window.api.getEntry(id));
+}
+
 /* ---------------- 悬浮提示：被截断的文字悬停看全文 ---------------- */
 function placeTip(ev) {
   const t = $('tip');
@@ -646,11 +695,22 @@ document.addEventListener('click', hideTip, true);
 window.addEventListener('blur', hideTip);
 document.addEventListener('mouseleave', hideTip);
 
+document.addEventListener('click', (e) => { if (!e.target.closest('.ctx')) closeCtx(); });
+document.addEventListener('scroll', closeCtx, true);
+window.addEventListener('blur', closeCtx);
+
 /* ---------------- 启动 ---------------- */
 window.api.onChanged(() => refreshCurrent());
 // 换主题时重画一次：列表色/圆点是按主题算出来的内联样式
 window.api.onTheme((m) => { applyTheme(m); refreshCurrent(); });
 (async () => { applyTheme((await window.api.setting.get('theme')) || 'light'); })();
+// 从桌面组件点「修改」进来：切到那一天并弹出编辑框
+window.api.onEditRequest(async (id) => {
+  const entry = await entryById(id);
+  if (!entry) return;
+  if (entry.date !== state.date) { state.date = entry.date; await loadToday(); }
+  openEditor(entry);
+});
 setInterval(() => { checkDateRollover().catch(() => {}); }, 10000);
 window.addEventListener('focus', () => { checkDateRollover().catch(() => {}); });
 bind();

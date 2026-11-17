@@ -128,6 +128,21 @@ svg{flex:0 0 auto}
 .task.done .tm{color:#ADB5B1}
 .task .pri{width:3px;height:14px;border-radius:2px;background:#D8A26B;flex:0 0 auto;margin-top:2px}
 
+/* 右键菜单 */
+.ctx{position:fixed;z-index:85;min-width:132px;padding:4px;border-radius:9px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 38px rgba(20,35,30,.18),0 2px 6px rgba(20,35,30,.08)}
+.ctx[hidden]{display:none}
+.ctx button{display:flex;align-items:center;gap:8px;width:100%;height:29px;padding:0 10px;border-radius:6px;font-size:12px;color:#3A4642;text-align:left;white-space:nowrap}
+.ctx button:hover{background:var(--teal-soft);color:var(--teal)}
+.ctx button.danger{color:#B4473F}
+.ctx button.danger:hover{background:#FBEFEE;color:#B4473F}
+.ctx .sep{height:1px;background:var(--line2);margin:3px 2px}
+body[data-theme="dark"] .ctx{background:#202723;border-color:#333C37;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+body[data-theme="dark"] .ctx button{color:#DFE6E2}
+body[data-theme="dark"] .ctx button:hover{background:#22332F;color:#9FC6C0}
+body[data-theme="dark"] .ctx button.danger{color:#E08A80}
+body[data-theme="dark"] .ctx button.danger:hover{background:#33211F;color:#E08A80}
+body[data-theme="dark"] .ctx .sep{background:#333C37}
+
 /* 悬浮提示：被截断的文字放不下，就用它显示全文 */
 .tip{position:fixed;z-index:90;left:0;top:0;max-width:420px;padding:8px 11px;border-radius:9px;background:#1E2A26;color:#F3F7F5;box-shadow:0 14px 36px rgba(12,24,20,.38);opacity:0;visibility:hidden;transition:opacity .1s;pointer-events:none}
 .tip.on{opacity:1;visibility:visible}

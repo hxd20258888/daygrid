@@ -311,6 +311,50 @@ document.addEventListener('mouseleave', hideTip);
 document.addEventListener('wheel', hideTip, true);
 document.addEventListener('click', hideTip, true);
 
+/* ---------------- 右键菜单：修改 / 完成 / 删除 ---------------- */
+function closeCtx() {
+  const el = document.getElementById('ctx');
+  if (el) { el.hidden = true; el.innerHTML = ''; }
+}
+
+function openCtx(x, y, items) {
+  const el = document.getElementById('ctx');
+  el.innerHTML = items.map((it, i) => (it.sep
+    ? '<div class="sep"></div>'
+    : `<button data-i="${i}"${it.danger ? ' class="danger"' : ''}>${it.label}</button>`)).join('');
+  el.hidden = false;
+  const r = el.getBoundingClientRect();
+  el.style.left = `${Math.max(6, Math.min(x, window.innerWidth - r.width - 6))}px`;
+  el.style.top = `${Math.max(6, Math.min(y, window.innerHeight - r.height - 6))}px`;
+  el.onclick = async (ev) => {
+    const b = ev.target.closest('button[data-i]');
+    if (!b) return;
+    const item = items[Number(b.dataset.i)];
+    closeCtx();
+    if (item && item.act) await item.act();
+  };
+}
+
+document.getElementById('w-list').addEventListener('contextmenu', (ev) => {
+  const li = ev.target.closest('.w-item');
+  if (!li) return;
+  ev.preventDefault();
+  const id = li.dataset.id;
+  const en = dayCache.find((x) => x.id === id);
+  if (!en) return;
+  openCtx(ev.clientX, ev.clientY, [
+    { label: '修改…', act: () => window.api.openEditor(id) },
+    { label: en.status === 'done' ? '取消完成' : '标记完成', act: async () => { await window.api.toggle(id); await refresh(); } },
+    { sep: true },
+    { label: '删除', danger: true, act: async () => { if (await window.api.removeConfirm(id, en.title)) await refresh(); } },
+  ]);
+});
+document.addEventListener('click', (ev) => { if (!ev.target.closest('.ctx')) closeCtx(); });
+document.addEventListener('contextmenu', (ev) => { if (!ev.target.closest('.w-item')) closeCtx(); });
+document.addEventListener('wheel', closeCtx, true);
+window.addEventListener('blur', closeCtx);
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeCtx(); });
+
 /* 启动时按主进程给的模式渲染（避免先闪一下大卡片） */
 paintMode(new URLSearchParams(location.search).get('mode') === MINI ? MINI : 'expanded');
 refresh();

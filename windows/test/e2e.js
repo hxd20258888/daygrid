@@ -323,6 +323,58 @@ async function main() {
   });
   check('组件里悬停也能看全文', wTip.ok && wTip.on && wTip.text.includes('特别长') && wTip.inView, JSON.stringify(wTip));
 
+  /* ---------- 右键菜单：修改 / 删除 ---------- */
+  const wCtx = await widget.evaluate(async () => {
+    const li = [...document.querySelectorAll('.w-item')].find((x) => !x.classList.contains('done'));
+    const r = li.getBoundingClientRect();
+    li.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.x + 20, clientY: r.y + 8 }));
+    await new Promise((s) => setTimeout(s, 120));
+    const ctx = document.getElementById('ctx');
+    const visible = !ctx.hidden;
+    const items = [...ctx.querySelectorAll('button')].map((b) => b.textContent.trim());
+    const inWindow = ctx.getBoundingClientRect().right <= innerWidth + 1 && ctx.getBoundingClientRect().bottom <= innerHeight + 1;
+    document.body.click();
+    return { visible, items, inWindow };
+  });
+  check('组件里右键有菜单（修改/完成/删除）', wCtx.visible && wCtx.items.includes('修改…') && wCtx.items.includes('删除') && wCtx.inWindow, JSON.stringify(wCtx.items));
+
+  await mainWin.evaluate(async () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    await window.api.create({ title: '右键测试条目', date, start: '19:00', end: '19:30', listId: 'life' });
+  });
+  await mainWin.waitForTimeout(500);
+  const cMenu = await mainWin.evaluate(async () => {
+    const el = [...document.querySelectorAll('#task-list .tcard')].find((c) => c.querySelector('.tt').textContent.includes('右键测试条目'));
+    if (!el) return { ok: false };
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.x + 30, clientY: r.y + 20 }));
+    await new Promise((s) => setTimeout(s, 150));
+    const ctx = document.getElementById('ctx');
+    return { ok: true, items: [...ctx.querySelectorAll('button')].map((b) => b.textContent.trim()) };
+  });
+  check('卡片右键菜单含修改/删除', cMenu.ok && cMenu.items.includes('修改…') && cMenu.items.includes('删除'), JSON.stringify(cMenu.items));
+  await mainWin.evaluate(async () => {
+    [...document.querySelectorAll('#ctx button')].find((b) => b.textContent.trim() === '修改…').click();
+    await new Promise((s) => setTimeout(s, 200));
+  });
+  await mainWin.waitForSelector('#editor-overlay.on', { timeout: 5000 });
+  const ctxEditTitle = await mainWin.inputValue('#ed-title');
+  check('右键「修改」打开编辑框', ctxEditTitle.includes('右键测试条目'), ctxEditTitle);
+  await mainWin.click('#ed-cancel');
+  await mainWin.waitForTimeout(300);
+  await mainWin.evaluate(async () => {
+    const el = [...document.querySelectorAll('#task-list .tcard')].find((c) => c.querySelector('.tt').textContent.includes('右键测试条目'));
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.x + 30, clientY: r.y + 20 }));
+    await new Promise((s) => setTimeout(s, 150));
+    [...document.querySelectorAll('#ctx button')].find((b) => b.textContent.trim() === '删除').click();
+    await new Promise((s) => setTimeout(s, 400));
+  });
+  const afterDel = await mainWin.locator('#task-list .tt').allTextContents();
+  check('右键「删除」把条目删掉', !afterDel.some((t) => t.includes('右键测试条目')), `${afterDel.length} 条`);
+
   const posted = await mainWin.locator('#kpi-row').textContent();
   check('概览卡显示完成数', /完成\s*\d+\s*\/\s*\d+/.test(posted.replace(/\s+/g, ' ')), posted.replace(/\s+/g, ' ').slice(0, 60));
 

@@ -390,6 +390,11 @@ class Store {
     this.recordChange('entry', id, 'delete', {}, now);
   }
 
+  byId(id) {
+    const row = this.get('SELECT * FROM entries WHERE id = ? AND deleted_at IS NULL', [id]);
+    return row ? this.shape(row) : null;
+  }
+
   dueReminders(now = new Date()) {
     const date = ymd(now);
     const mins = now.getHours() * 60 + now.getMinutes();

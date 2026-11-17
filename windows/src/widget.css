@@ -124,6 +124,16 @@ body.collapsed .w-mini{display:flex}
 .tip-s{font-size:10px;color:#9FB3AC;margin-top:2px}
 .tip-s:empty{display:none}
 
+/* 右键菜单 */
+.ctx{position:fixed;z-index:70;min-width:118px;padding:4px;border-radius:9px;background:#FCFCF9;border:1px solid #E3E7E4;box-shadow:0 14px 34px rgba(28,48,43,.22),0 2px 6px rgba(28,48,43,.1)}
+.ctx[hidden]{display:none}
+.ctx button{display:flex;align-items:center;gap:7px;width:100%;height:28px;padding:0 9px;border-radius:6px;font-size:12px;color:#3A4642;text-align:left;white-space:nowrap}
+.ctx button:hover{background:var(--teal-soft);color:var(--teal)}
+.ctx button.danger{color:#B4473F}
+.ctx button.danger:hover{background:#FBEFEE;color:#B4473F}
+.ctx .sep{height:1px;background:var(--line2);margin:3px 2px}
+.ctx kbd{margin-left:auto;font-family:inherit;font-size:9.5px;color:#A2ABA7}
+
 /* ==================== 深色主题 ==================== */
 body[data-theme="dark"]{--paper:#1B211E;--ink:#E8ECE9;--ink2:#C6CFCA;--ink3:#9EA9A4;--line:#333C37;--line2:#2A312D;--teal:#8FC0B9;--teal2:#4E9A93;--teal-soft:#22332F;--amber:#D08A5A;--amber-soft:#33261E}
 body[data-theme="dark"] .widget{background:rgba(29,35,32,.96);border-color:rgba(255,255,255,.07);box-shadow:0 18px 44px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3)}
@@ -159,6 +169,13 @@ body[data-theme="dark"] .w-mini b{color:#9FC6C0}
 body[data-theme="dark"] .w-mini em{color:#9EA9A4}
 body[data-theme="dark"] .w-mini-open{color:#C6CFCA}
 body[data-theme="dark"] .w-mini-open:hover{background:#22332F;color:#9FC6C0}
+body[data-theme="dark"] .ctx{background:#202723;border-color:#333C37;box-shadow:0 14px 34px rgba(0,0,0,.6)}
+body[data-theme="dark"] .ctx button{color:#DFE6E2}
+body[data-theme="dark"] .ctx button:hover{background:#22332F;color:#9FC6C0}
+body[data-theme="dark"] .ctx button.danger{color:#E08A80}
+body[data-theme="dark"] .ctx button.danger:hover{background:#33211F;color:#E08A80}
+body[data-theme="dark"] .ctx .sep{background:#333C37}
+body[data-theme="dark"] .ctx kbd{color:#8E9893}
 
 /* ==================== 透明主题（组件透出壁纸） ==================== */
 body[data-transparent="1"] .widget{
